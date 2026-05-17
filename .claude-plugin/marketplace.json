@@ -1,0 +1,128 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
+  "name": "plugin-place",
+  "version": "0.1.0",
+  "description": "Curated marketplace of Claude Code plugins. Built from upstream skill collections and direct plugin vendoring.",
+  "owner": {
+    "name": "galeep"
+  },
+  "plugins": [
+    {
+      "name": "sci-bioinformatics-genomics",
+      "description": "Sequence analysis, single-cell RNA-seq, gene regulatory networks, variant data, phylogenetics, and biomedical database lookup.",
+      "source": "./plugins/sci-bioinformatics-genomics",
+      "category": "bioinformatics"
+    },
+    {
+      "name": "sci-cheminformatics-drug-discovery",
+      "description": "Cheminformatics, molecular ML featurization, docking, and medicinal chemistry workflows.",
+      "source": "./plugins/sci-cheminformatics-drug-discovery",
+      "category": "chemistry"
+    },
+    {
+      "name": "sci-proteomics-mass-spec",
+      "description": "LC-MS/MS processing, spectral matching, peptide ID, and glycoengineering.",
+      "source": "./plugins/sci-proteomics-mass-spec",
+      "category": "chemistry"
+    },
+    {
+      "name": "sci-clinical-research",
+      "description": "Clinical decision support, clinical/case/trial reports, treatment plans, and ISO 13485 QMS docs.",
+      "source": "./plugins/sci-clinical-research",
+      "category": "clinical"
+    },
+    {
+      "name": "sci-healthcare-ai",
+      "description": "EHR/physiological-signal ML: PyHealth pipelines and NeuroKit2 biosignal processing.",
+      "source": "./plugins/sci-healthcare-ai",
+      "category": "clinical"
+    },
+    {
+      "name": "sci-medical-imaging",
+      "description": "DICOM, whole-slide imaging, computational pathology, and NCI Imaging Data Commons.",
+      "source": "./plugins/sci-medical-imaging",
+      "category": "imaging"
+    },
+    {
+      "name": "sci-machine-learning",
+      "description": "General ML/DL: scikit-learn, PyTorch Lightning, transformers, RL, time series, GNNs, Bayesian, SHAP, plus GPU and compute helpers.",
+      "source": "./plugins/sci-machine-learning",
+      "category": "ml"
+    },
+    {
+      "name": "sci-materials-chemistry",
+      "description": "Materials science with pymatgen and constraint-based metabolic modeling with COBRApy.",
+      "source": "./plugins/sci-materials-chemistry",
+      "category": "chemistry"
+    },
+    {
+      "name": "sci-physics-astronomy",
+      "description": "Astronomy (astropy), symbolic math (sympy), open quantum systems (qutip), and quantum frameworks (qiskit, cirq, pennylane).",
+      "source": "./plugins/sci-physics-astronomy",
+      "category": "physics"
+    },
+    {
+      "name": "sci-engineering-simulation",
+      "description": "Discrete-event simulation, multi-objective optimization, CFD, and molecular dynamics.",
+      "source": "./plugins/sci-engineering-simulation",
+      "category": "engineering"
+    },
+    {
+      "name": "sci-data-analysis-viz",
+      "description": "Stats, EDA, network analysis, survival analysis, plotting, big-data dataframes (dask/polars/vaex/zarr), MATLAB, and US fiscal data.",
+      "source": "./plugins/sci-data-analysis-viz",
+      "category": "data"
+    },
+    {
+      "name": "sci-geospatial",
+      "description": "Geospatial science: GIS, remote sensing, spatial stats, and earth-observation ML.",
+      "source": "./plugins/sci-geospatial",
+      "category": "data"
+    },
+    {
+      "name": "sci-lab-automation",
+      "description": "Lab platforms and ELNs: Benchling, DNAnexus, LatchBio, OMERO, Opentrons, protocols.io, PyLabRobot, Ginkgo, LabArchives, plus flow cytometry and Neuropixels.",
+      "source": "./plugins/sci-lab-automation",
+      "category": "lab"
+    },
+    {
+      "name": "sci-scientific-communication",
+      "description": "Lit review, peer review, writing, citations, posters, slides, schematics, infographics, and academic web search. (For docx/pdf/pptx/xlsx, install kdense-document-skills.)",
+      "source": "./plugins/sci-scientific-communication",
+      "category": "communication"
+    },
+    {
+      "name": "kdense-document-skills",
+      "description": "General-purpose document tools: read/write/edit .docx (Word), .pdf, .pptx (PowerPoint), and .xlsx (Excel/spreadsheets). Useful complement to any scientific-writing workflow.",
+      "source": "./plugins/kdense-document-skills",
+      "category": "communication"
+    },
+    {
+      "name": "sci-multi-omics",
+      "description": "Multi-modal omics integration: DepMap, PrimeKG, and scvi-tools deep generative models.",
+      "source": "./plugins/sci-multi-omics",
+      "category": "bioinformatics"
+    },
+    {
+      "name": "sci-protein-engineering",
+      "description": "Protein language models (ESM) and the Adaptyv Bio Foundry API.",
+      "source": "./plugins/sci-protein-engineering",
+      "category": "bioinformatics"
+    },
+    {
+      "name": "sci-research-methodology",
+      "description": "Hypothesis generation, grant writing, brainstorming, critical-thinking eval, scenario analysis, and cognitive/meta tools.",
+      "source": "./plugins/sci-research-methodology",
+      "category": "methodology"
+    },
+    {
+      "name": "claude-scientific-writer",
+      "description": "K-Dense's scientific writing toolkit: 23 skills (papers, grants, posters, clinical reports, paper-2-web) plus a /scientific-writer-init command. NOTE: 22 of these 23 skills also appear in sci-* plugins; only paper-2-web is unique to the writer. To avoid duplicate skills, install EITHER claude-scientific-writer OR the relevant sci-* plugins, not both.",
+      "source": "./plugins/claude-scientific-writer",
+      "category": "communication"
+    }
+  ],
+  "metadata": {
+    "homepage": "https://github.com/galeep/plugin-place"
+  }
+}

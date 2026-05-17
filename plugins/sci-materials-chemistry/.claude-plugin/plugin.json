@@ -1,0 +1,14 @@
+{
+  "name": "sci-materials-chemistry",
+  "version": "0.1.0",
+  "description": "Materials science with pymatgen and constraint-based metabolic modeling with COBRApy.",
+  "author": {
+    "name": "galeep"
+  },
+  "homepage": "https://github.com/galeep/plugin-place",
+  "license": "MIT",
+  "keywords": [
+    "scientific-skills",
+    "scientific-agent-skills"
+  ]
+}

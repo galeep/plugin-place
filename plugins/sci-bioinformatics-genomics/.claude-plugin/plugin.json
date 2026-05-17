@@ -1,0 +1,14 @@
+{
+  "name": "sci-bioinformatics-genomics",
+  "version": "0.1.0",
+  "description": "Sequence analysis, single-cell RNA-seq, gene regulatory networks, variant data, phylogenetics, and biomedical database lookup.",
+  "author": {
+    "name": "galeep"
+  },
+  "homepage": "https://github.com/galeep/plugin-place",
+  "license": "MIT",
+  "keywords": [
+    "scientific-skills",
+    "scientific-agent-skills"
+  ]
+}

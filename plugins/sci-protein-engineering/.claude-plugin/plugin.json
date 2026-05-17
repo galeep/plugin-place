@@ -1,0 +1,14 @@
+{
+  "name": "sci-protein-engineering",
+  "version": "0.1.0",
+  "description": "Protein language models (ESM) and the Adaptyv Bio Foundry API.",
+  "author": {
+    "name": "galeep"
+  },
+  "homepage": "https://github.com/galeep/plugin-place",
+  "license": "MIT",
+  "keywords": [
+    "scientific-skills",
+    "scientific-agent-skills"
+  ]
+}

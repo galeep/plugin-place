@@ -1,0 +1,6 @@
+[submodule "vendor/scientific-agent-skills"]
+	path = vendor/scientific-agent-skills
+	url = https://github.com/K-Dense-AI/scientific-agent-skills.git
+[submodule "vendor/claude-scientific-writer"]
+	path = vendor/claude-scientific-writer
+	url = https://github.com/K-Dense-AI/claude-scientific-writer.git

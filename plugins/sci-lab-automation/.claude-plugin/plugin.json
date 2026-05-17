@@ -1,0 +1,14 @@
+{
+  "name": "sci-lab-automation",
+  "version": "0.1.0",
+  "description": "Lab platforms and ELNs: Benchling, DNAnexus, LatchBio, OMERO, Opentrons, protocols.io, PyLabRobot, Ginkgo, LabArchives, plus flow cytometry and Neuropixels.",
+  "author": {
+    "name": "galeep"
+  },
+  "homepage": "https://github.com/galeep/plugin-place",
+  "license": "MIT",
+  "keywords": [
+    "scientific-skills",
+    "scientific-agent-skills"
+  ]
+}

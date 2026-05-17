@@ -1,0 +1,309 @@
+# plugin-place: marketplace manifest source-of-truth
+#
+# The build script reads this file and generates:
+#   - .claude-plugin/marketplace.json
+#   - plugins/<name>/.claude-plugin/plugin.json  (for every `kind: built` plugin)
+#   - plugins/<name>/skills/*                    (copied from the upstream submodule)
+#
+# Plugin kinds:
+#   built:    skills copied in from an upstream submodule per the `skills:` list
+#   vendored: an upstream submodule that is already a complete plugin; we point
+#             marketplace.json at the submodule path directly
+#   local:    a plugin authored in this repo (room to grow)
+
+marketplace:
+  name: plugin-place
+  description: "Curated marketplace of Claude Code plugins. Built from upstream skill collections and direct plugin vendoring."
+  version: "0.1.0"
+  owner:
+    name: galeep
+  homepage: https://github.com/galeep/plugin-place
+
+upstreams:
+  scientific-agent-skills:
+    submodule: vendor/scientific-agent-skills
+    skills_root: scientific-skills
+    pinned_tag: v2.38.0
+    upstream_repo: K-Dense-AI/scientific-agent-skills
+    license: MIT
+  claude-scientific-writer:
+    submodule: vendor/claude-scientific-writer
+    pinned_tag: v2.13.0
+    upstream_repo: K-Dense-AI/claude-scientific-writer
+    license: MIT
+
+plugins:
+  # ──────────────────────────────────────────────────────────────────────
+  # Built from scientific-agent-skills @ v2.38.0  (135 skills, 17 plugins)
+  # ──────────────────────────────────────────────────────────────────────
+
+  - name: sci-bioinformatics-genomics
+    kind: built
+    upstream: scientific-agent-skills
+    category: bioinformatics
+    description: "Sequence analysis, single-cell RNA-seq, gene regulatory networks, variant data, phylogenetics, and biomedical database lookup."
+    skills:
+      - anndata
+      - arboreto
+      - biopython
+      - bioservices
+      - cellxgene-census
+      - database-lookup
+      - deeptools
+      - etetoolkit
+      - geniml
+      - gget
+      - gtars
+      - lamindb
+      - phylogenetics
+      - polars-bio
+      - pydeseq2
+      - pysam
+      - scanpy
+      - scikit-bio
+      - scvelo
+      - tiledbvcf
+
+  - name: sci-cheminformatics-drug-discovery
+    kind: built
+    upstream: scientific-agent-skills
+    category: chemistry
+    description: "Cheminformatics, molecular ML featurization, docking, and medicinal chemistry workflows."
+    skills:
+      - datamol
+      - deepchem
+      - diffdock
+      - medchem
+      - molfeat
+      - pytdc
+      - rdkit
+      - rowan
+      - torchdrug
+
+  - name: sci-proteomics-mass-spec
+    kind: built
+    upstream: scientific-agent-skills
+    category: chemistry
+    description: "LC-MS/MS processing, spectral matching, peptide ID, and glycoengineering."
+    skills:
+      - glycoengineering
+      - matchms
+      - pyopenms
+
+  - name: sci-clinical-research
+    kind: built
+    upstream: scientific-agent-skills
+    category: clinical
+    description: "Clinical decision support, clinical/case/trial reports, treatment plans, and ISO 13485 QMS docs."
+    skills:
+      - clinical-decision-support
+      - clinical-reports
+      - iso-13485-certification
+      - treatment-plans
+
+  - name: sci-healthcare-ai
+    kind: built
+    upstream: scientific-agent-skills
+    category: clinical
+    description: "EHR/physiological-signal ML: PyHealth pipelines and NeuroKit2 biosignal processing."
+    skills:
+      - neurokit2
+      - pyhealth
+
+  - name: sci-medical-imaging
+    kind: built
+    upstream: scientific-agent-skills
+    category: imaging
+    description: "DICOM, whole-slide imaging, computational pathology, and NCI Imaging Data Commons."
+    skills:
+      - histolab
+      - imaging-data-commons
+      - pathml
+      - pydicom
+
+  - name: sci-machine-learning
+    kind: built
+    upstream: scientific-agent-skills
+    category: ml
+    description: "General ML/DL: scikit-learn, PyTorch Lightning, transformers, RL, time series, GNNs, Bayesian, SHAP, plus GPU and compute helpers."
+    skills:
+      - aeon
+      - get-available-resources
+      - hugging-science
+      - hypogenic
+      - modal
+      - optimize-for-gpu
+      - pufferlib
+      - pymc
+      - pytorch-lightning
+      - scikit-learn
+      - shap
+      - stable-baselines3
+      - timesfm-forecasting
+      - torch-geometric
+      - transformers
+      - umap-learn
+
+  - name: sci-materials-chemistry
+    kind: built
+    upstream: scientific-agent-skills
+    category: chemistry
+    description: "Materials science with pymatgen and constraint-based metabolic modeling with COBRApy."
+    skills:
+      - cobrapy
+      - pymatgen
+
+  - name: sci-physics-astronomy
+    kind: built
+    upstream: scientific-agent-skills
+    category: physics
+    description: "Astronomy (astropy), symbolic math (sympy), open quantum systems (qutip), and quantum frameworks (qiskit, cirq, pennylane)."
+    skills:
+      - astropy
+      - cirq
+      - pennylane
+      - qiskit
+      - qutip
+      - sympy
+
+  - name: sci-engineering-simulation
+    kind: built
+    upstream: scientific-agent-skills
+    category: engineering
+    description: "Discrete-event simulation, multi-objective optimization, CFD, and molecular dynamics."
+    skills:
+      - fluidsim
+      - molecular-dynamics
+      - pymoo
+      - simpy
+
+  - name: sci-data-analysis-viz
+    kind: built
+    upstream: scientific-agent-skills
+    category: data
+    description: "Stats, EDA, network analysis, survival analysis, plotting, big-data dataframes (dask/polars/vaex/zarr), MATLAB, and US fiscal data."
+    skills:
+      - dask
+      - exploratory-data-analysis
+      - matlab
+      - matplotlib
+      - networkx
+      - polars
+      - scientific-visualization
+      - scikit-survival
+      - seaborn
+      - statistical-analysis
+      - statsmodels
+      - usfiscaldata
+      - vaex
+      - zarr-python
+
+  - name: sci-geospatial
+    kind: built
+    upstream: scientific-agent-skills
+    category: data
+    description: "Geospatial science: GIS, remote sensing, spatial stats, and earth-observation ML."
+    skills:
+      - geomaster
+      - geopandas
+
+  - name: sci-lab-automation
+    kind: built
+    upstream: scientific-agent-skills
+    category: lab
+    description: "Lab platforms and ELNs: Benchling, DNAnexus, LatchBio, OMERO, Opentrons, protocols.io, PyLabRobot, Ginkgo, LabArchives, plus flow cytometry and Neuropixels."
+    skills:
+      - benchling-integration
+      - dnanexus-integration
+      - flowio
+      - ginkgo-cloud-lab
+      - labarchive-integration
+      - latchbio-integration
+      - neuropixels-analysis
+      - omero-integration
+      - opentrons-integration
+      - protocolsio-integration
+      - pylabrobot
+
+  - name: sci-scientific-communication
+    kind: built
+    upstream: scientific-agent-skills
+    category: communication
+    description: "Lit review, peer review, writing, citations, posters, slides, schematics, infographics, and academic web search. (For docx/pdf/pptx/xlsx, install kdense-document-skills.)"
+    skills:
+      - bgpt-paper-search
+      - citation-management
+      - generate-image
+      - infographics
+      - latex-posters
+      - literature-review
+      - markdown-mermaid-writing
+      - markitdown
+      - market-research-reports
+      - open-notebook
+      - paper-lookup
+      - paperzilla
+      - parallel-web
+      - peer-review
+      - pptx-posters
+      - pyzotero
+      - research-lookup
+      - scholar-evaluation
+      - scientific-schematics
+      - scientific-slides
+      - scientific-writing
+      - venue-templates
+
+  - name: kdense-document-skills
+    kind: built
+    upstream: scientific-agent-skills
+    category: communication
+    description: "General-purpose document tools: read/write/edit .docx (Word), .pdf, .pptx (PowerPoint), and .xlsx (Excel/spreadsheets). Useful complement to any scientific-writing workflow."
+    skills:
+      - docx
+      - pdf
+      - pptx
+      - xlsx
+
+  - name: sci-multi-omics
+    kind: built
+    upstream: scientific-agent-skills
+    category: bioinformatics
+    description: "Multi-modal omics integration: DepMap, PrimeKG, and scvi-tools deep generative models."
+    skills:
+      - depmap
+      - primekg
+      - scvi-tools
+
+  - name: sci-protein-engineering
+    kind: built
+    upstream: scientific-agent-skills
+    category: bioinformatics
+    description: "Protein language models (ESM) and the Adaptyv Bio Foundry API."
+    skills:
+      - adaptyv
+      - esm
+
+  - name: sci-research-methodology
+    kind: built
+    upstream: scientific-agent-skills
+    category: methodology
+    description: "Hypothesis generation, grant writing, brainstorming, critical-thinking eval, scenario analysis, and cognitive/meta tools."
+    skills:
+      - consciousness-council
+      - dhdna-profiler
+      - hypothesis-generation
+      - research-grants
+      - scientific-brainstorming
+      - scientific-critical-thinking
+      - what-if-oracle
+
+  # ──────────────────────────────────────────────────────────────────────
+  # Vendored intact plugin
+  # ──────────────────────────────────────────────────────────────────────
+
+  - name: claude-scientific-writer
+    kind: vendored
+    upstream: claude-scientific-writer
+    category: communication
+    description: "K-Dense's scientific writing toolkit: 23 skills (papers, grants, posters, clinical reports, paper-2-web) plus a /scientific-writer-init command. NOTE: 22 of these 23 skills also appear in sci-* plugins; only paper-2-web is unique to the writer. To avoid duplicate skills, install EITHER claude-scientific-writer OR the relevant sci-* plugins, not both."

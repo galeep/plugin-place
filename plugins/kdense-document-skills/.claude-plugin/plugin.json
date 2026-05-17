@@ -1,0 +1,14 @@
+{
+  "name": "kdense-document-skills",
+  "version": "0.1.0",
+  "description": "General-purpose document tools: read/write/edit .docx (Word), .pdf, .pptx (PowerPoint), and .xlsx (Excel/spreadsheets). Useful complement to any scientific-writing workflow.",
+  "author": {
+    "name": "galeep"
+  },
+  "homepage": "https://github.com/galeep/plugin-place",
+  "license": "MIT",
+  "keywords": [
+    "scientific-skills",
+    "scientific-agent-skills"
+  ]
+}

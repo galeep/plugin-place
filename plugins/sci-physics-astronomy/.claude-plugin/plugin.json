@@ -1,0 +1,14 @@
+{
+  "name": "sci-physics-astronomy",
+  "version": "0.1.0",
+  "description": "Astronomy (astropy), symbolic math (sympy), open quantum systems (qutip), and quantum frameworks (qiskit, cirq, pennylane).",
+  "author": {
+    "name": "galeep"
+  },
+  "homepage": "https://github.com/galeep/plugin-place",
+  "license": "MIT",
+  "keywords": [
+    "scientific-skills",
+    "scientific-agent-skills"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "name": "sci-research-methodology",
+  "version": "0.1.0",
+  "description": "Hypothesis generation, grant writing, brainstorming, critical-thinking eval, scenario analysis, and cognitive/meta tools.",
+  "author": {
+    "name": "galeep"
+  },
+  "homepage": "https://github.com/galeep/plugin-place",
+  "license": "MIT",
+  "keywords": [
+    "scientific-skills",
+    "scientific-agent-skills"
+  ]
+}

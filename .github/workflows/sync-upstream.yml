@@ -1,0 +1,167 @@
+name: Sync upstream releases
+
+# Daily cron + manual trigger. Checks each upstream submodule for a newer
+# release tag than the one currently pinned in plugins.yaml. When a newer
+# tag is found, it: bumps the submodule, rebuilds the plugins, runs
+# validation, and opens a PR with the diff for human review.
+
+on:
+  schedule:
+    - cron: "17 9 * * *"  # 09:17 UTC daily, offset to avoid the top-of-hour rush
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out marketplace repo
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build dependencies
+        run: |
+          pip install pyyaml
+          sudo apt-get update -qq
+          sudo apt-get install -y jq
+
+      - name: Check for upstream updates
+        id: check
+        run: |
+          set -euo pipefail
+          changed=0
+          notes=""
+          pins_changed=""
+
+          # For each upstream in plugins.yaml, fetch tags and compare to pin.
+          while IFS=$'\t' read -r name repo current; do
+            echo "Checking $name (currently @ $current)"
+            cd "vendor/$name"
+            git fetch --tags --quiet
+            latest=$(git tag -l 'v*' --sort=-v:refname | head -1)
+            if [ -z "$latest" ]; then
+              echo "  no v* tags found, skipping"
+              cd "$GITHUB_WORKSPACE"
+              continue
+            fi
+            if [ "$latest" = "$current" ]; then
+              echo "  up to date"
+            else
+              echo "  $current -> $latest"
+              git checkout "$latest" --quiet
+              changed=1
+              pins_changed="${pins_changed}${name}: ${current} -> ${latest}\n"
+            fi
+            cd "$GITHUB_WORKSPACE"
+          done < <(python3 -c '
+          import yaml
+          c = yaml.safe_load(open("plugins.yaml"))
+          for name, up in c["upstreams"].items():
+              sub = up["submodule"].split("/")[-1]
+              print(f"{sub}\t{up[\"upstream_repo\"]}\t{up[\"pinned_tag\"]}")
+          ')
+
+          echo "changed=$changed" >> "$GITHUB_OUTPUT"
+          # multiline output for the PR body
+          {
+            echo "pins_changed<<EOF"
+            printf '%b' "$pins_changed"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Bump pinned_tag values in plugins.yaml
+        if: steps.check.outputs.changed == '1'
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          import subprocess, yaml
+          from pathlib import Path
+
+          p = Path("plugins.yaml")
+          src = p.read_text()
+          config = yaml.safe_load(src)
+
+          for name, up in config["upstreams"].items():
+              sub_path = Path(up["submodule"])
+              # describe yields the tag name when HEAD is on a tag
+              new_tag = subprocess.check_output(
+                  ["git", "-C", str(sub_path), "describe", "--tags", "--exact-match"],
+                  text=True,
+              ).strip()
+              old_tag = up["pinned_tag"]
+              if old_tag != new_tag:
+                  # Replace via string substitution to preserve formatting
+                  needle = f'pinned_tag: {old_tag}'
+                  replacement = f'pinned_tag: {new_tag}'
+                  if needle not in src:
+                      raise SystemExit(f"could not find {needle!r} in plugins.yaml")
+                  src = src.replace(needle, replacement, 1)
+                  print(f"updated {name}: {old_tag} -> {new_tag}")
+
+          p.write_text(src)
+          PY
+
+      - name: Rebuild plugins
+        if: steps.check.outputs.changed == '1'
+        run: bash scripts/build.sh
+
+      - name: Validate every plugin
+        if: steps.check.outputs.changed == '1'
+        run: |
+          set -euo pipefail
+          fails=0
+          for d in plugins/*/; do
+            if ! bash scripts/validate-plugin.sh "$d" >/dev/null 2>&1; then
+              echo "FAIL: $(basename "$d")"
+              bash scripts/validate-plugin.sh "$d" || true
+              fails=$((fails + 1))
+            fi
+          done
+          if [ "$fails" -gt 0 ]; then
+            echo "::error::$fails plugin(s) failed validation"
+            exit 1
+          fi
+
+      - name: Open pull request
+        if: steps.check.outputs.changed == '1'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: sync/upstream-${{ github.run_id }}
+          delete-branch: true
+          commit-message: "sync: bump upstream pins"
+          title: "sync: upstream release update"
+          body: |
+            Automated sync from `.github/workflows/sync-upstream.yml`.
+
+            ## Pin changes
+
+            ```
+            ${{ steps.check.outputs.pins_changed }}
+            ```
+
+            ## What was regenerated
+
+            All `plugins/sci-*` and `plugins/kdense-*` directories were
+            rebuilt from the new submodule contents. The `vendored` plugin
+            (`plugins/claude-scientific-writer`) was reseeded from the new
+            writer submodule.
+
+            ## Pre-merge checklist
+
+            - [ ] Review skill additions/removals in the diff
+            - [ ] Spot-check that no skill changed plugin assignment unexpectedly
+            - [ ] Verify upstream release notes (linked above) don't include breaking changes
+            - [ ] Validation passed (CI check below)
+          labels: |
+            upstream-sync
+            automated

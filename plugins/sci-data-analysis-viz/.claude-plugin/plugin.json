@@ -1,0 +1,14 @@
+{
+  "name": "sci-data-analysis-viz",
+  "version": "0.1.0",
+  "description": "Stats, EDA, network analysis, survival analysis, plotting, big-data dataframes (dask/polars/vaex/zarr), MATLAB, and US fiscal data.",
+  "author": {
+    "name": "galeep"
+  },
+  "homepage": "https://github.com/galeep/plugin-place",
+  "license": "MIT",
+  "keywords": [
+    "scientific-skills",
+    "scientific-agent-skills"
+  ]
+}

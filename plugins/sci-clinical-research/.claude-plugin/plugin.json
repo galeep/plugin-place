@@ -1,0 +1,14 @@
+{
+  "name": "sci-clinical-research",
+  "version": "0.1.0",
+  "description": "Clinical decision support, clinical/case/trial reports, treatment plans, and ISO 13485 QMS docs.",
+  "author": {
+    "name": "galeep"
+  },
+  "homepage": "https://github.com/galeep/plugin-place",
+  "license": "MIT",
+  "keywords": [
+    "scientific-skills",
+    "scientific-agent-skills"
+  ]
+}

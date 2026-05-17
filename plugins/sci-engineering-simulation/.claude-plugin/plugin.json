@@ -1,0 +1,14 @@
+{
+  "name": "sci-engineering-simulation",
+  "version": "0.1.0",
+  "description": "Discrete-event simulation, multi-objective optimization, CFD, and molecular dynamics.",
+  "author": {
+    "name": "galeep"
+  },
+  "homepage": "https://github.com/galeep/plugin-place",
+  "license": "MIT",
+  "keywords": [
+    "scientific-skills",
+    "scientific-agent-skills"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "name": "sci-healthcare-ai",
+  "version": "0.1.0",
+  "description": "EHR/physiological-signal ML: PyHealth pipelines and NeuroKit2 biosignal processing.",
+  "author": {
+    "name": "galeep"
+  },
+  "homepage": "https://github.com/galeep/plugin-place",
+  "license": "MIT",
+  "keywords": [
+    "scientific-skills",
+    "scientific-agent-skills"
+  ]
+}

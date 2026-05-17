@@ -1,0 +1,14 @@
+{
+  "name": "sci-machine-learning",
+  "version": "0.1.0",
+  "description": "General ML/DL: scikit-learn, PyTorch Lightning, transformers, RL, time series, GNNs, Bayesian, SHAP, plus GPU and compute helpers.",
+  "author": {
+    "name": "galeep"
+  },
+  "homepage": "https://github.com/galeep/plugin-place",
+  "license": "MIT",
+  "keywords": [
+    "scientific-skills",
+    "scientific-agent-skills"
+  ]
+}

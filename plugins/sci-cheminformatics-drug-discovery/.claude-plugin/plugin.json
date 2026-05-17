@@ -1,0 +1,14 @@
+{
+  "name": "sci-cheminformatics-drug-discovery",
+  "version": "0.1.0",
+  "description": "Cheminformatics, molecular ML featurization, docking, and medicinal chemistry workflows.",
+  "author": {
+    "name": "galeep"
+  },
+  "homepage": "https://github.com/galeep/plugin-place",
+  "license": "MIT",
+  "keywords": [
+    "scientific-skills",
+    "scientific-agent-skills"
+  ]
+}

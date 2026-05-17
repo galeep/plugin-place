@@ -1,0 +1,14 @@
+{
+  "name": "sci-medical-imaging",
+  "version": "0.1.0",
+  "description": "DICOM, whole-slide imaging, computational pathology, and NCI Imaging Data Commons.",
+  "author": {
+    "name": "galeep"
+  },
+  "homepage": "https://github.com/galeep/plugin-place",
+  "license": "MIT",
+  "keywords": [
+    "scientific-skills",
+    "scientific-agent-skills"
+  ]
+}
