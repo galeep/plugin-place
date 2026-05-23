@@ -43,8 +43,24 @@ jobs:
           notes=""
           pins_changed=""
 
+          # Enumerate upstreams once and capture to a variable. A bare process
+          # substitution (done < <(python3 ...)) swallows a Python crash: the
+          # loop reads nothing and the step exits 0, silently skipping every
+          # sync check. Command-substitution assignment propagates the failure
+          # under `set -e` so a broken enumerator fails the job loudly.
+          upstreams="$(python3 -c '
+          import yaml
+          c = yaml.safe_load(open("plugins.yaml"))
+          for name, up in c["upstreams"].items():
+              sub = up["submodule"].split("/")[-1]
+              repo = up["upstream_repo"]
+              tag = up["pinned_tag"]
+              print(f"{sub}\t{repo}\t{tag}")
+          ')"
+
           # For each upstream in plugins.yaml, fetch tags and compare to pin.
           while IFS=$'\t' read -r name repo current; do
+            [ -n "$name" ] || continue
             echo "Checking $name (currently @ $current)"
             cd "vendor/$name"
             git fetch --tags --quiet
@@ -63,13 +79,7 @@ jobs:
               pins_changed="${pins_changed}${name}: ${current} -> ${latest}\n"
             fi
             cd "$GITHUB_WORKSPACE"
-          done < <(python3 -c '
-          import yaml
-          c = yaml.safe_load(open("plugins.yaml"))
-          for name, up in c["upstreams"].items():
-              sub = up["submodule"].split("/")[-1]
-              print(f"{sub}\t{up['upstream_repo']}\t{up['pinned_tag']}")
-          ')
+          done <<< "$upstreams"
 
           echo "changed=$changed" >> "$GITHUB_OUTPUT"
           # multiline output for the PR body
