@@ -184,6 +184,95 @@ jobs:
             exit 1
           fi
 
+      - name: Build review summary
+        id: summary
+        if: steps.check.outputs.changed == '1'
+        run: |
+          set -euo pipefail
+          # Stage the regenerated tree so added/removed files show in the diff
+          # (create-pull-request re-stages later; this -A is harmless).
+          git add -A
+          # Categorize the staged diff for the human gate: skills added/removed,
+          # any that look reassigned to a different plugin, and where the file
+          # weight sits. A python failure aborts the step under `set -e`.
+          python3 <<'PY'
+          import collections, os, re, subprocess
+
+          diff = subprocess.run(
+              ["git", "diff", "--cached", "--name-status", "--no-renames", "HEAD"],
+              text=True, capture_output=True, check=True,
+          ).stdout
+          # SKILL.md sits one level under a plugin's skills/ dir by convention
+          # (every current skill); a deeper layout would slip past this regex.
+          skill_re = re.compile(r"^plugins/([^/]+)/skills/([^/]+)/SKILL\.md$")
+          added, removed, modified = [], [], []
+          cat = collections.Counter()
+          total = 0
+          for line in diff.splitlines():
+              if not line.strip():
+                  continue
+              fields = line.split("\t")
+              status, path = fields[0], fields[-1]
+              total += 1
+              m = skill_re.match(path)
+              if m:
+                  entry = (m.group(1), m.group(2))
+                  cat["content"] += 1
+                  bucket = (added if status.startswith("A")
+                            else removed if status.startswith("D")
+                            else modified)
+                  bucket.append(entry)
+              elif (re.match(r"^plugins/[^/]+/README\.md$", path)
+                    or path == "plugins.yaml"
+                    or path == ".claude-plugin/marketplace.json"
+                    or path == ".claude-plugin/provenance.json"
+                    or path.endswith("/.claude-plugin/plugin.json")
+                    or path.startswith("vendor/")):
+                  # Generated/boilerplate: pins, provenance, marketplace +
+                  # per-plugin manifests, plugin-level READMEs, submodule pointer.
+                  cat["mechanical"] += 1
+              else:
+                  # Skill-internal READMEs, references, and assets land here.
+                  cat["asset"] += 1
+
+          added_by = collections.defaultdict(set)
+          removed_by = collections.defaultdict(set)
+          for plugin, skill in added:
+              added_by[skill].add(plugin)
+          for plugin, skill in removed:
+              removed_by[skill].add(plugin)
+          # A skill name appearing as both an add (one plugin) and a remove
+          # (another) is a likely reassignment the gate must eyeball.
+          moves = sorted(set(added_by) & set(removed_by))
+
+          def fmt(items):
+              return ", ".join(f"`{s}` ({p})" for p, s in sorted(items)) if items else "none"
+
+          out = [
+              f"**Skills added ({len(added)}):** {fmt(added)}",
+              f"**Skills removed ({len(removed)}):** {fmt(removed)}",
+          ]
+          if moves:
+              mv = "; ".join(
+                  f"`{s}`: {', '.join(sorted(removed_by[s]))} to {', '.join(sorted(added_by[s]))}"
+                  for s in moves
+              )
+              out.append(f"**⚠ Possible plugin reassignment:** {mv}")
+          else:
+              out.append("**Possible plugin reassignment:** none")
+          out.append(f"**Skills modified:** {len(modified)}")
+          out.append(
+              f"**File breakdown:** {cat['mechanical']} mechanical, "
+              f"{cat['content']} skill-content, {cat['asset']} asset/other "
+              f"({total} files total)"
+          )
+
+          with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
+              fh.write("review<<REVIEW_EOF\n")
+              fh.write("\n".join(out) + "\n")
+              fh.write("REVIEW_EOF\n")
+          PY
+
       - name: Open pull request
         if: steps.check.outputs.changed == '1'
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1  # v8.1.1
@@ -200,6 +289,10 @@ jobs:
             ```
             ${{ steps.check.outputs.pins_changed }}
             ```
+
+            ## Review summary
+
+            ${{ steps.summary.outputs.review }}
 
             ## What was regenerated
 
