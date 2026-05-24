@@ -42,12 +42,18 @@ jobs:
           changed=0
           notes=""
           pins_changed=""
+          # Tab-separated "<upstreams-key>\t<chosen-tag>" lines, one per upstream
+          # this step actually advances. The bump step consumes this verbatim so
+          # it writes the exact tag chosen here rather than re-deriving it.
+          resolved=""
 
           # Enumerate upstreams once and capture to a variable. A bare process
           # substitution (done < <(python3 ...)) swallows a Python crash: the
           # loop reads nothing and the step exits 0, silently skipping every
           # sync check. Command-substitution assignment propagates the failure
           # under `set -e` so a broken enumerator fails the job loudly.
+          # First column is the upstreams dict key (e.g. scientific-agent-skills);
+          # the bump step keys its lookup on it, so it must match exactly.
           upstreams="$(python3 -c '
           import yaml
           c = yaml.safe_load(open("plugins.yaml"))
@@ -55,14 +61,14 @@ jobs:
               sub = up["submodule"].split("/")[-1]
               repo = up["upstream_repo"]
               tag = up["pinned_tag"]
-              print(f"{sub}\t{repo}\t{tag}")
+              print(f"{name}\t{sub}\t{repo}\t{tag}")
           ')"
 
           # For each upstream in plugins.yaml, fetch tags and compare to pin.
-          while IFS=$'\t' read -r name repo current; do
-            [ -n "$name" ] || continue
-            echo "Checking $name (currently @ $current)"
-            cd "vendor/$name"
+          while IFS=$'\t' read -r key sub repo current; do
+            [ -n "$key" ] || continue
+            echo "Checking $sub (currently @ $current)"
+            cd "vendor/$sub"
             git fetch --tags --quiet
             # Capture then take the first line via parameter expansion. A
             # `git tag ... | head -1` pipe trips `set -o pipefail` when head
@@ -82,7 +88,8 @@ jobs:
               echo "  $current -> $latest"
               git checkout "$latest" --quiet
               changed=1
-              pins_changed="${pins_changed}${name}: ${current} -> ${latest}\n"
+              pins_changed="${pins_changed}${sub}: ${current} -> ${latest}\n"
+              resolved="${resolved}${key}\t${latest}\n"
             fi
             cd "$GITHUB_WORKSPACE"
           done <<< "$upstreams"
@@ -94,38 +101,50 @@ jobs:
             printf '%b' "$pins_changed"
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
+          # multiline output: the authoritative key->tag map the bump step reads
+          {
+            echo "resolved<<EOF"
+            printf '%b' "$resolved"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Bump pinned_tag values in plugins.yaml
         if: steps.check.outputs.changed == '1'
+        env:
+          # Passed through env (not interpolated into the script body) so tab/
+          # newline-bearing content can't break or inject into the shell.
+          RESOLVED_TAGS: ${{ steps.check.outputs.resolved }}
         run: |
           set -euo pipefail
           python3 <<'PY'
-          import subprocess, yaml
+          import os, yaml
           from pathlib import Path
+
+          # The check step already chose AND checked out the exact tag for every
+          # submodule it advanced (git tag -l 'v*' --sort=-v:refname, first line).
+          # Re-deriving here with `git describe --exact-match` is unsafe: when two
+          # tags point at the same commit, describe prefers the annotated tag,
+          # which need not equal the version-sorted tag the check step picked.
+          # So consume the check step's decision verbatim. RESOLVED_TAGS is TSV
+          # ("<upstreams-key>\t<tag>"), one line per upstream the check bumped.
+          resolved = {}
+          for line in os.environ.get("RESOLVED_TAGS", "").splitlines():
+              if not line.strip():
+                  continue
+              key, _, tag = line.partition("\t")
+              resolved[key] = tag
 
           p = Path("plugins.yaml")
           src = p.read_text()
           config = yaml.safe_load(src)
 
           for name, up in config["upstreams"].items():
-              sub_path = Path(up["submodule"])
               old_tag = up["pinned_tag"]
-              # describe yields the tag name when HEAD is on a tag. The check
-              # step only advances submodules with a newer release, so an
-              # unchanged submodule may sit on a commit that is not exactly a
-              # tag. That must not abort the whole bump: skip it and keep the
-              # existing pin. Submodules the check step moved are parked
-              # exactly on their new tag, so they still resolve here.
-              try:
-                  new_tag = subprocess.check_output(
-                      ["git", "-C", str(sub_path), "describe", "--tags", "--exact-match"],
-                      text=True,
-                      stderr=subprocess.DEVNULL,
-                  ).strip()
-              except subprocess.CalledProcessError:
-                  # Leave a trace so a skipped upstream is visible in the log
-                  # rather than silently vanishing from the bump.
-                  print(f"  {name}: HEAD not on an exact tag, keeping pin {old_tag}")
+              new_tag = resolved.get(name)
+              if not new_tag:
+                  # Not advanced by the check step; keep the existing pin. Logged
+                  # so a skipped upstream is visible rather than silently absent.
+                  print(f"  {name}: not bumped by check step, keeping pin {old_tag}")
                   continue
               if old_tag != new_tag:
                   # Replace via string substitution to preserve formatting
