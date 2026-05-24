@@ -64,7 +64,13 @@ jobs:
             echo "Checking $name (currently @ $current)"
             cd "vendor/$name"
             git fetch --tags --quiet
-            latest=$(git tag -l 'v*' --sort=-v:refname | head -1)
+            # Capture then take the first line via parameter expansion. A
+            # `git tag ... | head -1` pipe trips `set -o pipefail` when head
+            # closes the pipe early and git dies on SIGPIPE (exit 141) once the
+            # tag list exceeds the pipe buffer. Command substitution keeps a
+            # real git failure loud while avoiding the pipe entirely.
+            tags=$(git tag -l 'v*' --sort=-v:refname)
+            latest="${tags%%$'\n'*}"
             if [ -z "$latest" ]; then
               echo "  no v* tags found, skipping"
               cd "$GITHUB_WORKSPACE"
@@ -103,12 +109,24 @@ jobs:
 
           for name, up in config["upstreams"].items():
               sub_path = Path(up["submodule"])
-              # describe yields the tag name when HEAD is on a tag
-              new_tag = subprocess.check_output(
-                  ["git", "-C", str(sub_path), "describe", "--tags", "--exact-match"],
-                  text=True,
-              ).strip()
               old_tag = up["pinned_tag"]
+              # describe yields the tag name when HEAD is on a tag. The check
+              # step only advances submodules with a newer release, so an
+              # unchanged submodule may sit on a commit that is not exactly a
+              # tag. That must not abort the whole bump: skip it and keep the
+              # existing pin. Submodules the check step moved are parked
+              # exactly on their new tag, so they still resolve here.
+              try:
+                  new_tag = subprocess.check_output(
+                      ["git", "-C", str(sub_path), "describe", "--tags", "--exact-match"],
+                      text=True,
+                      stderr=subprocess.DEVNULL,
+                  ).strip()
+              except subprocess.CalledProcessError:
+                  # Leave a trace so a skipped upstream is visible in the log
+                  # rather than silently vanishing from the bump.
+                  print(f"  {name}: HEAD not on an exact tag, keeping pin {old_tag}")
+                  continue
               if old_tag != new_tag:
                   # Replace via string substitution to preserve formatting
                   needle = f'pinned_tag: {old_tag}'
