@@ -19,13 +19,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out marketplace repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
         with:
           submodules: recursive
           fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
         with:
           python-version: "3.12"
 
@@ -42,13 +42,41 @@ jobs:
           changed=0
           notes=""
           pins_changed=""
+          # Tab-separated "<upstreams-key>\t<chosen-tag>" lines, one per upstream
+          # this step actually advances. The bump step consumes this verbatim so
+          # it writes the exact tag chosen here rather than re-deriving it.
+          resolved=""
+
+          # Enumerate upstreams once and capture to a variable. A bare process
+          # substitution (done < <(python3 ...)) swallows a Python crash: the
+          # loop reads nothing and the step exits 0, silently skipping every
+          # sync check. Command-substitution assignment propagates the failure
+          # under `set -e` so a broken enumerator fails the job loudly.
+          # First column is the upstreams dict key (e.g. scientific-agent-skills);
+          # the bump step keys its lookup on it, so it must match exactly.
+          upstreams="$(python3 -c '
+          import yaml
+          c = yaml.safe_load(open("plugins.yaml"))
+          for name, up in c["upstreams"].items():
+              sub = up["submodule"].split("/")[-1]
+              repo = up["upstream_repo"]
+              tag = up["pinned_tag"]
+              print(f"{name}\t{sub}\t{repo}\t{tag}")
+          ')"
 
           # For each upstream in plugins.yaml, fetch tags and compare to pin.
-          while IFS=$'\t' read -r name repo current; do
-            echo "Checking $name (currently @ $current)"
-            cd "vendor/$name"
+          while IFS=$'\t' read -r key sub repo current; do
+            [ -n "$key" ] || continue
+            echo "Checking $sub (currently @ $current)"
+            cd "vendor/$sub"
             git fetch --tags --quiet
-            latest=$(git tag -l 'v*' --sort=-v:refname | head -1)
+            # Capture then take the first line via parameter expansion. A
+            # `git tag ... | head -1` pipe trips `set -o pipefail` when head
+            # closes the pipe early and git dies on SIGPIPE (exit 141) once the
+            # tag list exceeds the pipe buffer. Command substitution keeps a
+            # real git failure loud while avoiding the pipe entirely.
+            tags=$(git tag -l 'v*' --sort=-v:refname)
+            latest="${tags%%$'\n'*}"
             if [ -z "$latest" ]; then
               echo "  no v* tags found, skipping"
               cd "$GITHUB_WORKSPACE"
@@ -60,16 +88,11 @@ jobs:
               echo "  $current -> $latest"
               git checkout "$latest" --quiet
               changed=1
-              pins_changed="${pins_changed}${name}: ${current} -> ${latest}\n"
+              pins_changed="${pins_changed}${sub}: ${current} -> ${latest}\n"
+              resolved="${resolved}${key}\t${latest}\n"
             fi
             cd "$GITHUB_WORKSPACE"
-          done < <(python3 -c '
-          import yaml
-          c = yaml.safe_load(open("plugins.yaml"))
-          for name, up in c["upstreams"].items():
-              sub = up["submodule"].split("/")[-1]
-              print(f"{sub}\t{up[\"upstream_repo\"]}\t{up[\"pinned_tag\"]}")
-          ')
+          done <<< "$upstreams"
 
           echo "changed=$changed" >> "$GITHUB_OUTPUT"
           # multiline output for the PR body
@@ -78,27 +101,51 @@ jobs:
             printf '%b' "$pins_changed"
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
+          # multiline output: the authoritative key->tag map the bump step reads
+          {
+            echo "resolved<<EOF"
+            printf '%b' "$resolved"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Bump pinned_tag values in plugins.yaml
         if: steps.check.outputs.changed == '1'
+        env:
+          # Passed through env (not interpolated into the script body) so tab/
+          # newline-bearing content can't break or inject into the shell.
+          RESOLVED_TAGS: ${{ steps.check.outputs.resolved }}
         run: |
           set -euo pipefail
           python3 <<'PY'
-          import subprocess, yaml
+          import os, yaml
           from pathlib import Path
+
+          # The check step already chose AND checked out the exact tag for every
+          # submodule it advanced (git tag -l 'v*' --sort=-v:refname, first line).
+          # Re-deriving here with `git describe --exact-match` is unsafe: when two
+          # tags point at the same commit, describe prefers the annotated tag,
+          # which need not equal the version-sorted tag the check step picked.
+          # So consume the check step's decision verbatim. RESOLVED_TAGS is TSV
+          # ("<upstreams-key>\t<tag>"), one line per upstream the check bumped.
+          resolved = {}
+          for line in os.environ.get("RESOLVED_TAGS", "").splitlines():
+              if not line.strip():
+                  continue
+              key, _, tag = line.partition("\t")
+              resolved[key] = tag
 
           p = Path("plugins.yaml")
           src = p.read_text()
           config = yaml.safe_load(src)
 
           for name, up in config["upstreams"].items():
-              sub_path = Path(up["submodule"])
-              # describe yields the tag name when HEAD is on a tag
-              new_tag = subprocess.check_output(
-                  ["git", "-C", str(sub_path), "describe", "--tags", "--exact-match"],
-                  text=True,
-              ).strip()
               old_tag = up["pinned_tag"]
+              new_tag = resolved.get(name)
+              if not new_tag:
+                  # Not advanced by the check step; keep the existing pin. Logged
+                  # so a skipped upstream is visible rather than silently absent.
+                  print(f"  {name}: not bumped by check step, keeping pin {old_tag}")
+                  continue
               if old_tag != new_tag:
                   # Replace via string substitution to preserve formatting
                   needle = f'pinned_tag: {old_tag}'
@@ -134,7 +181,7 @@ jobs:
 
       - name: Open pull request
         if: steps.check.outputs.changed == '1'
-        uses: peter-evans/create-pull-request@v6
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1  # v8.1.1
         with:
           branch: sync/upstream-${{ github.run_id }}
           delete-branch: true
