@@ -1,8 +1,8 @@
 {
   "scientific-agent-skills": {
-    "pinned_tag": "v2.38.0",
-    "sha": "75c41d78a2503e687d0dc8d349c6d6081d9fc27c",
-    "describe": "v2.38.0",
+    "pinned_tag": "v2.39.0",
+    "sha": "9b13286d8bae8b87d0d1361bb945fd64de9817bc",
+    "describe": "v2.39.0",
     "repo": "K-Dense-AI/scientific-agent-skills"
   },
   "claude-scientific-writer": {
