@@ -23,7 +23,7 @@ upstreams:
   scientific-agent-skills:
     submodule: vendor/scientific-agent-skills
     skills_root: scientific-skills
-    pinned_tag: v2.38.0
+    pinned_tag: v2.39.0
     upstream_repo: K-Dense-AI/scientific-agent-skills
     license: MIT
   claude-scientific-writer:
