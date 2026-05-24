@@ -52,23 +52,28 @@ jobs:
           # loop reads nothing and the step exits 0, silently skipping every
           # sync check. Command-substitution assignment propagates the failure
           # under `set -e` so a broken enumerator fails the job loudly.
-          # First column is the upstreams dict key (e.g. scientific-agent-skills);
-          # the bump step keys its lookup on it, so it must match exactly.
+          # Columns: <upstreams-key>\t<submodule-path>\t<basename>\t<repo>\t<pinned_tag>.
+          # Column 1 (key) is the upstreams dict key; the bump step keys its
+          # lookup on it, so it must match exactly. Column 2 is the full
+          # submodule path from plugins.yaml, used as the cd target so the
+          # layout is not hardcoded to vendor/<basename>. Column 3 is the
+          # basename, kept only for the human-facing pins_changed label.
           upstreams="$(python3 -c '
           import yaml
           c = yaml.safe_load(open("plugins.yaml"))
           for name, up in c["upstreams"].items():
-              sub = up["submodule"].split("/")[-1]
+              path = up["submodule"]
+              sub = path.split("/")[-1]
               repo = up["upstream_repo"]
               tag = up["pinned_tag"]
-              print(f"{name}\t{sub}\t{repo}\t{tag}")
+              print(f"{name}\t{path}\t{sub}\t{repo}\t{tag}")
           ')"
 
           # For each upstream in plugins.yaml, fetch tags and compare to pin.
-          while IFS=$'\t' read -r key sub repo current; do
+          while IFS=$'\t' read -r key path sub repo current; do
             [ -n "$key" ] || continue
             echo "Checking $sub (currently @ $current)"
-            cd "vendor/$sub"
+            cd "$path"
             git fetch --tags --quiet
             # Capture then take the first line via parameter expansion. A
             # `git tag ... | head -1` pipe trips `set -o pipefail` when head
