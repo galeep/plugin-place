@@ -48,4 +48,35 @@ if [ "$fail" -ne 0 ]; then
   exit 1
 fi
 
-echo "smoke-caveman: OK — per-turn hook emits the patched allocation framing"
+# --- SessionStart hook: must load SKILL.md, be complete, and stay under cap ---
+ACTIVATE="$REPO_ROOT/plugins/caveman/src/hooks/caveman-activate.js"
+[ -f "$ACTIVATE" ] || { echo "smoke-caveman: activate hook not built: $ACTIVATE" >&2; exit 1; }
+ss="$(CLAUDE_CONFIG_DIR="$tmp" node "$ACTIVATE")"
+
+# The patched path (edit #5) must load SKILL.md, so the Allocation section AND
+# the final Boundaries section must both appear: presence of the first proves it
+# loaded the skill (not the hardcoded fallback); presence of the last proves the
+# output was not cut off mid-content.
+for needle in "## Allocation: terseness is a floor" "## Boundaries"; do
+  case "$ss" in
+    *"$needle"*) ;;
+    *) echo "smoke-caveman: SessionStart MISSING expected text: $needle" >&2; fail=1 ;;
+  esac
+done
+
+# Claude Code caps hook output at 10000 chars; past that the text degrades to a
+# file-pointer and stops injecting inline (docs: code.claude.com/docs/en/hooks).
+# Fail loud with margin so a future SKILL.md bloat is caught here, not discovered
+# in production.
+ss_len=$(printf '%s' "$ss" | wc -c | tr -d ' ')
+if [ "$ss_len" -ge 9000 ]; then
+  echo "smoke-caveman: SessionStart output ${ss_len}c >= 9000c safety margin (hard cap 10000c) — trim SKILL.md before it degrades to a file-pointer" >&2
+  fail=1
+fi
+
+if [ "$fail" -ne 0 ]; then
+  echo "smoke-caveman: FAIL — patched hooks did not emit the expected framing (see above)" >&2
+  exit 1
+fi
+
+echo "smoke-caveman: OK — per-turn (${#out}c) + SessionStart (${ss_len}c / 10000c cap) emit the patched framing"
