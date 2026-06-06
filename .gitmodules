@@ -4,3 +4,6 @@
 [submodule "vendor/claude-scientific-writer"]
 	path = vendor/claude-scientific-writer
 	url = https://github.com/K-Dense-AI/claude-scientific-writer.git
+[submodule "vendor/caveman"]
+	path = vendor/caveman
+	url = https://github.com/JuliusBrussee/caveman.git

@@ -10,5 +10,11 @@
     "sha": "5bf6b597e2aff21de4607cf4fe9a7b46ecbd7f04",
     "describe": "v2.13.0",
     "repo": "K-Dense-AI/claude-scientific-writer"
+  },
+  "caveman": {
+    "pinned_tag": "v1.8.2",
+    "sha": "63a91ecadbf4c4719a4602a5abb00883f9966034",
+    "describe": "v1.8.2",
+    "repo": "JuliusBrussee/caveman"
   }
 }
