@@ -25,6 +25,12 @@
       "why": "SessionStart fallback ruleset (used only when the skills dir is absent): mirror the floor-not-cap framing so the standalone path agrees with the skill.",
       "find": "'Respond terse like smart caveman. All technical substance stay. Only fluff die.",
       "replace": "'Terseness is the floor for low-value turns (status/lookup/recall), not a cap on high-value ones (debug/design/tradeoff/review), which get full prose and compress only the final statement. Respond terse like smart caveman. All technical substance stay. Only fluff die."
+    },
+    {
+      "file": "src/hooks/caveman-activate.js",
+      "why": "Fix SKILL.md path so SessionStart loads the real skill instead of the hardcoded fallback. The hook lives at src/hooks/, so a single '..' lands in src/; it needs '..','..' to reach <plugin>/skills/caveman/SKILL.md. Drift guard aborts the build if upstream relayouts this line.",
+      "find": "path.join(__dirname, '..', 'skills', 'caveman', 'SKILL.md')",
+      "replace": "path.join(__dirname, '..', '..', 'skills', 'caveman', 'SKILL.md')"
     }
   ]
 }

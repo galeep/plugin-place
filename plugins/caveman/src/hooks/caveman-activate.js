@@ -53,7 +53,7 @@ const modeLabel = mode === 'wenyan' ? 'wenyan-full' : mode;
 let skillContent = '';
 try {
   skillContent = fs.readFileSync(
-    path.join(__dirname, '..', 'skills', 'caveman', 'SKILL.md'), 'utf8'
+    path.join(__dirname, '..', '..', 'skills', 'caveman', 'SKILL.md'), 'utf8'
   );
 } catch (e) { /* standalone install — will use fallback below */ }
 
