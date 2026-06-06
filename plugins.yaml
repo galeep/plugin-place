@@ -31,6 +31,11 @@ upstreams:
     pinned_tag: v2.13.0
     upstream_repo: K-Dense-AI/claude-scientific-writer
     license: MIT
+  caveman:
+    submodule: vendor/caveman
+    pinned_tag: v1.8.2
+    upstream_repo: JuliusBrussee/caveman
+    license: MIT
 
 plugins:
   # ──────────────────────────────────────────────────────────────────────
@@ -307,3 +312,19 @@ plugins:
     upstream: claude-scientific-writer
     category: communication
     description: "K-Dense's scientific writing toolkit: 23 skills (papers, grants, posters, clinical reports, paper-2-web) plus a /scientific-writer-init command. NOTE: 22 of these 23 skills also appear in sci-* plugins; only paper-2-web is unique to the writer. To avoid duplicate skills, install EITHER claude-scientific-writer OR the relevant sci-* plugins, not both."
+
+  # ──────────────────────────────────────────────────────────────────────
+  # Vendored-whole plugin with downstream patches
+  #   Repo root is itself the plugin; hooks live in src/ and are wired by a
+  #   custom plugin.json the generic `vendored` path would drop. `vendored-whole`
+  #   preserves that manifest + src/, then applies patches/caveman.json.
+  # ──────────────────────────────────────────────────────────────────────
+
+  - name: caveman
+    kind: vendored-whole
+    upstream: caveman
+    category: productivity
+    # patched: true makes a missing patches/caveman.json a hard build error
+    # rather than a silent unpatched publish.
+    patched: true
+    description: "Caveman: ultra-compressed communication mode (lite/full/ultra/wenyan). Cuts ~75% of output tokens while keeping technical accuracy. Downstream-patched so terseness reads as value-proportional allocation: a floor for low-value turns, not a cap on high-value ones (see patches/caveman.json)."

@@ -1,0 +1,54 @@
+{
+  "plugin": "caveman",
+  "description": "Downstream edits: reframe caveman terseness as value-proportional allocation (terseness is a floor for low-value turns, not a cap). Anchored exact-substring edits; the build aborts if any anchor drifts.",
+  "edits": [
+    {
+      "file": "src/hooks/caveman-mode-tracker.js",
+      "why": "Per-turn UserPromptSubmit reminder: demote blanket terseness to a floor, add value-proportional spend and the render-only carve-out (compress the statement, never the reasoning).",
+      "find": "\"Drop articles/filler/pleasantries/hedging. Fragments OK. \"",
+      "replace": "\"Terseness (drop articles/filler/pleasantries/hedging, fragments OK) is the FLOOR for low-value turns (status/lookup/recall), not a cap. High-value turns (debug/design/tradeoff/review): spend for the turn's value, reason in full prose, compress only the final statement, never the reasoning. \""
+    },
+    {
+      "file": "src/hooks/caveman-mode-tracker.js",
+      "why": "Per-turn reminder: append the err-verbose asymmetry. A silent skipped step is unrecoverable; visible length is not.",
+      "find": "\"Code/commits/security: write normal.\"",
+      "replace": "\"Code/commits/security: write normal. \" +\n            \"Unsure which? Err verbose: a silent skipped step costs more than visible length.\""
+    },
+    {
+      "file": "skills/caveman/SKILL.md",
+      "why": "Pull-layer rationale (Goodhart, recoverability ordering, flat-plan shadow-price). Loaded only on /caveman, so the token cost is paid rarely.",
+      "find": "Default: **full**. Switch: `/caveman lite|full|ultra`.",
+      "replace": "Default: **full**. Switch: `/caveman lite|full|ultra`.\n\n## Allocation: terseness is a floor, not a cap\n\nCaveman compresses how a response is *written*, never whether the *thinking* happened. Terseness is the floor for low-value turns (status, lookup, recall). It is not a ceiling on high-value turns (debug, design, tradeoff, review). On a high-value turn, spend tokens in proportion to the turn's value: reason in full prose and compress only the final statement.\n\nThe proxy trap: \"minimize tokens\" is a measure of efficiency, not the goal. Promote that measure to a target and it stops tracking the goal (Goodhart). The goal is value per token. Minimizing is as wrong as padding, because both misallocate.\n\nWhy err verbose. The two failure directions are not symmetric. An over-long answer wastes tokens, and tokens are visible and recoverable: the reader skims. A skipped reasoning step wastes correctness, and that is silent and unrecoverable: the work gets redone. Order the failures by recovery cost: a skipped step (redo) is worse than lost detail (ask again), which is worse than an unclear but complete answer (reread), which is worse than mere length (skim). When unsure which kind of turn you are on, bias toward completeness.\n\nWhen terseness still pays. Token thrift earns its keep only as a real budget nears its limit: the rate-limit window, or the context window approaching compaction. Under a flat-rate plan the per-token price is already sunk, so reflexive per-turn thrift saves a resource you have already bought. The budgets that actually bind are context runway and the rate-limit window, both spent across turns rather than minimized within one. Conserve harder only as a cap comes into view."
+    },
+    {
+      "file": "src/hooks/caveman-activate.js",
+      "why": "SessionStart fallback ruleset (used only when the skills dir is absent): mirror the floor-not-cap framing so the standalone path agrees with the skill.",
+      "find": "'Respond terse like smart caveman. All technical substance stay. Only fluff die.",
+      "replace": "'Terseness is the floor for low-value turns (status/lookup/recall), not a cap on high-value ones (debug/design/tradeoff/review), which get full prose and compress only the final statement. Respond terse like smart caveman. All technical substance stay. Only fluff die."
+    },
+    {
+      "file": "src/hooks/caveman-activate.js",
+      "why": "Fix SKILL.md path so SessionStart loads the real skill instead of the hardcoded fallback. The hook lives at src/hooks/, so a single '..' lands in src/; it needs '..','..' to reach <plugin>/skills/caveman/SKILL.md. Drift guard aborts the build if upstream relayouts this line.",
+      "find": "path.join(__dirname, '..', 'skills', 'caveman', 'SKILL.md')",
+      "replace": "path.join(__dirname, '..', '..', 'skills', 'caveman', 'SKILL.md')"
+    },
+    {
+      "file": "skills/caveman-stats/SKILL.md",
+      "why": "Make /caveman-stats model-driven. The harness drops the mode-tracker hook's decision:block when /caveman-stats dispatches as a skill, so the hook-delivered stats never render. Instruct the skill to run the script itself; it auto-locates the session log via findRecentSession when no --session-file is passed.",
+      "find": "This skill is delivered by `hooks/caveman-stats.js` (read by `hooks/caveman-mode-tracker.js` on `/caveman-stats`). The model does not need to do anything when this skill fires — the hook returns `decision: \"block\"` with the formatted stats as the reason. The user sees the numbers immediately.",
+      "replace": "When this skill fires (the user typed `/caveman-stats`), run the stats script and show its stdout to the user verbatim. Do not recompute or estimate the numbers yourself.\n\n```bash\nnode \"${CLAUDE_PLUGIN_ROOT}/src/hooks/caveman-stats.js\"\n```\n\nThe script reads the current Claude Code session log directly, auto-locating the most recent session under `~/.claude/projects/`, and prints real token usage plus an estimated savings figure from the benchmark. Optional flags: `--share` (shareable summary), `--all` (all sessions), `--since 7d` or `--since 24h` (limit the window).\n\nWhy the skill runs the script instead of relying on a hook: historically `caveman-mode-tracker.js` returned `decision: \"block\"` with the stats as the reason, but the harness drops that block-decision when `/caveman-stats` dispatches as a skill, so nothing renders. Running the script from the skill sidesteps that."
+    },
+    {
+      "file": "skills/caveman-stats/README.md",
+      "why": "Consistency with edit #6: the stats output is now model-driven, not hook-injected. Update the README's mechanics sentence to match.",
+      "find": "Output is injected by the `caveman-mode-tracker` hook, which intercepts `/caveman-stats` and returns the formatted stats as a blocked-decision reason.",
+      "replace": "The `/caveman-stats` skill runs `caveman-stats.js` directly (it auto-locates the session log) and displays the output. An earlier design delivered the stats via the `caveman-mode-tracker` hook as a blocked-decision reason, but the harness drops that block when the command dispatches as a skill."
+    },
+    {
+      "file": "skills/caveman-stats/README.md",
+      "why": "Consistency with edit #6: SKILL.md is no longer a hook contract; it documents the model-driven execution path.",
+      "find": "hook contract and mechanics",
+      "replace": "how the skill runs the stats script"
+    }
+  ]
+}

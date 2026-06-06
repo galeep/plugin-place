@@ -16,7 +16,7 @@ cd "$REPO_ROOT"
 [[ -f "$REPO_ROOT/plugins.yaml" ]] || { echo "plugins.yaml not found" >&2; exit 1; }
 
 # Verify both submodules are present and have content.
-for sub in vendor/scientific-agent-skills vendor/claude-scientific-writer; do
+for sub in vendor/scientific-agent-skills vendor/claude-scientific-writer vendor/caveman; do
   [[ -d "$sub/.git" || -f "$sub/.git" ]] || {
     echo "submodule missing or uninitialised: $sub" >&2
     echo "run: git submodule update --init --recursive" >&2

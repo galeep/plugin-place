@@ -184,6 +184,14 @@ jobs:
             exit 1
           fi
 
+      - name: Smoke-test patched caveman hook
+        if: steps.check.outputs.changed == '1'
+        # Proves the patched per-turn hook still EMITS the allocation framing at
+        # runtime, not merely that the patch anchor matched. Catches an upstream
+        # bump that keeps the anchor but breaks the hook (the silent-injection
+        # failure the patch anchor check cannot see).
+        run: bash scripts/smoke-caveman.sh
+
       - name: Build review summary
         id: summary
         if: steps.check.outputs.changed == '1'
