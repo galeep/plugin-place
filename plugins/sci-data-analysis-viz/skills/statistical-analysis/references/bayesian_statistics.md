@@ -131,19 +131,18 @@ Where:
 ```python
 import pymc as pm
 
-# Model with different priors
-priors = [
-    ('weakly_informative', pm.Normal.dist(0, 1)),
-    ('diffuse', pm.Normal.dist(0, 10)),
-    ('informative', pm.Normal.dist(0.5, 0.3))
+prior_specs = [
+    ('weakly_informative', 0, 1),
+    ('diffuse', 0, 10),
+    ('informative', 0.5, 0.3),
 ]
 
 results = {}
-for name, prior in priors:
-    with pm.Model():
-        effect = pm.Normal('effect', mu=prior.mu, sigma=prior.sigma)
-        # ... rest of model
-        trace = pm.sample()
+for name, mu_prior, sigma_prior in prior_specs:
+    with pm.Model() as model:
+        effect = pm.Normal('effect', mu=mu_prior, sigma=sigma_prior)
+        # ... likelihood and observed data
+        trace = pm.sample(2000, tune=1000, return_inferencedata=True)
         results[name] = trace
 ```
 
@@ -184,24 +183,13 @@ BF₁₀ = P(D|H₁) / P(D|H₀)
 
 **Python calculation**:
 ```python
+# Pingouin 0.5+: BF10 for independent two-sided t-tests; one-sided BF removed.
 import pingouin as pg
 
-# Note: Limited BF support in Python
-# Better options: R packages (BayesFactor), JASP software
+result = pg.ttest(group1, group2, correction=False)
+bf10 = result['BF10'].values[0]
 
-# Approximate BF from t-statistic
-# Using Jeffreys-Zellner-Siow prior
-from scipy import stats
-
-def bf_from_t(t, n1, n2, r_scale=0.707):
-    """
-    Approximate Bayes Factor from t-statistic
-    r_scale: Cauchy prior scale (default 0.707 for medium effect)
-    """
-    # This is simplified; use dedicated packages for accurate calculation
-    df = n1 + n2 - 2
-    # Implementation requires numerical integration
-    pass
+# Rigorous Bayes Factors: BayesFactor (R), JASP, or PyMC model comparison (see pymc skill)
 ```
 
 ---
@@ -637,9 +625,11 @@ p_value = np.mean(pred_means >= obs_mean)  # Bayesian p-value
 
 ## Key Python Packages
 
-- **PyMC**: Full Bayesian modeling framework
-- **ArviZ**: Visualization and diagnostics
-- **Bambi**: High-level interface for regression models
+Install with uv (see SKILL.md). ArviZ 0.23+ requires Python 3.12+.
+
+- **PyMC** (`pymc>=5`): Full Bayesian modeling framework
+- **ArviZ** (`arviz>=0.17`): Visualization and diagnostics ([docs](https://python.arviz.org))
+- **Bambi**: High-level interface for regression models (`uv pip install bambi`)
 - **PyStan**: Python interface to Stan
 - **TensorFlow Probability**: Bayesian inference with TensorFlow
 

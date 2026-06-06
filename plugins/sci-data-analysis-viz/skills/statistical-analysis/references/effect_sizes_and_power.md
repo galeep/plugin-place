@@ -41,7 +41,7 @@ import numpy as np
 
 # Independent t-test with effect size
 result = pg.ttest(group1, group2, correction=False)
-cohens_d = result['cohen-d'].values[0]
+cohens_d = result['cohen_d'].values[0]
 
 # Manual calculation
 mean_diff = np.mean(group1) - np.mean(group2)
@@ -50,7 +50,7 @@ cohens_d = mean_diff / pooled_std
 
 # Paired t-test
 result = pg.ttest(pre, post, paired=True)
-cohens_d = result['cohen-d'].values[0]
+cohens_d = result['cohen_d'].values[0]
 ```
 
 **Confidence intervals for d**:
@@ -207,7 +207,7 @@ import pingouin as pg
 # Pearson correlation with CI
 result = pg.corr(x, y, method='pearson')
 r = result['r'].values[0]
-ci = [result['CI95%'][0][0], result['CI95%'][0][1]]
+ci = result['CI95'].values[0]  # Pingouin 0.5+: was CI95%
 
 # Spearman correlation
 result = pg.corr(x, y, method='spearman')
@@ -409,12 +409,9 @@ ci = np.exp(model.conf_int())  # Exponentiate CIs
 ```python
 import pingouin as pg
 
-# Bayesian t-test
+# Pingouin 0.5+: two-sided BF10 on independent t-tests; use BayesFactor/JASP/PyMC for full inference
 result = pg.ttest(group1, group2, correction=False)
-# Note: pingouin doesn't include BF; use other packages
-
-# Using JASP or BayesFactor (R) via rpy2
-# Or implement using numerical integration
+bf10 = result['BF10'].values[0]
 ```
 
 ---

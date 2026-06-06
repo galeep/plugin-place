@@ -4,7 +4,8 @@ description: Convert files and office documents to Markdown. Supports PDF, DOCX,
 allowed-tools: Read Write Edit Bash
 license: MIT license
 metadata:
-    skill-author: K-Dense Inc.
+  version: "1.0"
+  skill-author: K-Dense Inc.
 ---
 
 # MarkItDown - File to Markdown Conversion

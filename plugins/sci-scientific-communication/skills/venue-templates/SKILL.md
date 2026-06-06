@@ -4,7 +4,8 @@ description: Access comprehensive LaTeX templates, formatting requirements, and 
 allowed-tools: Read Write Edit Bash
 license: MIT license
 metadata:
-    skill-author: K-Dense Inc.
+  version: "1.0"
+  skill-author: K-Dense Inc.
 ---
 
 # Venue Templates

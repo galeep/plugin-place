@@ -91,7 +91,7 @@ Specialized task for predicting spatial proximity between residues in folded str
 ### Sequence-Based Models
 
 **ESM (Evolutionary Scale Modeling):**
-- Pre-trained transformer model on 250M sequences
+- Pre-trained transformer via `models.EvolutionaryScaleModeling` (ESM-1b and ESM-2; TorchDrug 0.2.1+)
 - State-of-the-art for sequence-only tasks
 - Available in multiple sizes (ESM-1b, ESM-2)
 - Captures evolutionary and structural information

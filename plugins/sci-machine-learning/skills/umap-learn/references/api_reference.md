@@ -1,5 +1,7 @@
 # UMAP API Reference
 
+Reference for **umap-learn 0.5.12** (Python >=3.9). See [official API guide](https://umap-learn.readthedocs.io/en/latest/api.html) for the full upstream reference.
+
 ## UMAP Class
 
 `umap.UMAP(n_neighbors=15, n_components=2, metric='euclidean', n_epochs=None, learning_rate=1.0, init='spectral', min_dist=0.1, spread=1.0, low_memory=True, set_op_mix_ratio=1.0, local_connectivity=1.0, repulsion_strength=1.0, negative_sample_rate=5, transform_queue_size=4.0, a=None, b=None, random_state=None, metric_kwds=None, angular_rp_forest=False, target_n_neighbors=-1, target_metric='categorical', target_metric_kwds=None, target_weight=0.5, transform_seed=42, transform_mode='embedding', force_approximation_algorithm=False, verbose=False, unique=False, densmap=False, dens_lambda=2.0, dens_frac=0.3, dens_var_shift=0.1, output_dens=False, disconnection_distance=None, precomputed_knn=(None, None, None))`
@@ -245,6 +247,15 @@ Update the model with new data. Allows incremental fitting.
 
 **Note:** Experimental feature, may not preserve all properties of batch training.
 
+### get_feature_names_out(input_features=None)
+Return output feature names for sklearn pipeline compatibility (added in 0.5.x).
+
+**Parameters:**
+- `input_features`: array-like of str, optional - Ignored; present for sklearn API compatibility
+
+**Returns:**
+- `ndarray` of shape `(n_components,)` with names like `umap0`, `umap1`, ...
+
 ## Attributes
 
 ### embedding_
@@ -276,9 +287,9 @@ list - Random projection forest used for approximate nearest neighbor search.
 
 ## ParametricUMAP Class
 
-`umap.ParametricUMAP(encoder=None, decoder=None, parametric_reconstruction=False, autoencoder_loss=False, reconstruction_validation=None, dims=None, batch_size=None, n_training_epochs=1, loss_report_frequency=10, optimizer=None, keras_fit_kwargs={}, **kwargs)`
+`umap.parametric_umap.ParametricUMAP(encoder=None, decoder=None, parametric_reconstruction=False, autoencoder_loss=False, reconstruction_validation=None, dims=None, batch_size=None, n_training_epochs=1, loss_report_frequency=10, optimizer=None, keras_fit_kwargs={}, **kwargs)`
 
-Parametric UMAP using neural networks to learn the embedding function.
+Install with `uv pip install "umap-learn[parametric-umap]==0.5.12"`. Parametric UMAP uses neural networks to learn the embedding function.
 
 ### Additional Parameters (beyond UMAP)
 

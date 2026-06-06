@@ -3,8 +3,10 @@ name: research-grants
 description: Write competitive research proposals for NSF, NIH, DOE, DARPA, and Taiwan NSTC. Agency-specific formatting, review criteria, budget preparation, broader impacts, significance statements, innovation narratives, and compliance with submission requirements.
 allowed-tools: Read Write Edit Bash
 license: MIT license
+compatibility: Works in Agent Skills-compatible hosts. Grant-writing guidance needs no network; optional figures via the scientific-schematics skill require OPENROUTER_API_KEY and outbound API access.
 metadata:
-    skill-author: K-Dense Inc.
+  version: "1.1"
+  skill-author: K-Dense Inc.
 ---
 
 # Research Grant Writing
@@ -29,41 +31,29 @@ This skill should be used when:
 - Writing preliminary data or feasibility sections
 - Preparing biosketches, CVs, or facilities descriptions
 
-## Visual Enhancement with Scientific Schematics
+## Visual Enhancement (Optional)
 
-**⚠️ MANDATORY: Every research grant proposal MUST include at least 1-2 AI-generated figures using the scientific-schematics skill.**
+Strong proposals often include 1–3 figures (timelines, workflow diagrams, preliminary data). Figures support review but are not a substitute for clear aims and methods.
 
-This is not optional. Grant proposals without visual elements are incomplete and less competitive. Before finalizing any document:
-1. Generate at minimum ONE schematic or diagram (e.g., project timeline, methodology flowchart, or conceptual framework)
-2. Prefer 2-3 figures for comprehensive proposals (research workflow, Gantt chart, preliminary data visualization)
-
-**How to generate figures:**
-- Use the **scientific-schematics** skill to generate AI-powered publication-quality diagrams
-- Simply describe your desired diagram in natural language
-- Nano Banana Pro will automatically generate, review, and refine the schematic
-
-**How to generate schematics:**
-```bash
-python scripts/generate_schematic.py "your diagram description" -o figures/output.png
-```
-
-The AI will automatically:
-- Create publication-quality images with proper formatting
-- Review and refine through multiple iterations
-- Ensure accessibility (colorblind-friendly, high contrast)
-- Save outputs in the figures/ directory
-
-**When to add schematics:**
+**When figures help:**
 - Research methodology and workflow diagrams
-- Project timeline Gantt charts
-- Conceptual framework illustrations
-- System architecture diagrams (for technical proposals)
+- Project timeline or Gantt charts
+- Conceptual framework or system architecture (technical proposals)
 - Experimental design flowcharts
 - Broader impacts activity diagrams
-- Collaboration network diagrams
-- Any complex concept that benefits from visualization
+- NSTC CM03 research architecture diagrams (often expected)
 
-For detailed guidance on creating schematics, refer to the scientific-schematics skill documentation.
+**How to create figures:**
+- **Preferred:** Use the **scientific-schematics** skill (`--doc-type grant`) for AI-generated diagrams from a natural-language description
+- **Alternative:** Build figures in your usual tools (matplotlib, Illustrator, PowerPoint, etc.)
+
+From the `scientific-schematics` skill directory, with `OPENROUTER_API_KEY` set:
+
+```bash
+python scripts/generate_schematic.py "project timeline with Year 1-3 milestones" -o figures/timeline.png --doc-type grant
+```
+
+**Disclosure:** AI schematic generation sends your prompt to [OpenRouter](https://openrouter.ai/) (a third-party API). Do not include unpublished sensitive details unless that transmission is appropriate for your project.
 
 ---
 
@@ -73,8 +63,9 @@ For detailed guidance on creating schematics, refer to the scientific-schematics
 **Mission**: Promote the progress of science and advance national health, prosperity, and welfare
 
 **Key Features**:
+- Follow [PAPPG 24-1](https://www.nsf.gov/policies/pappg) (effective May 20, 2024) unless a solicitation overrides it
 - Intellectual Merit + Broader Impacts (equally weighted)
-- 15-page project description limit (most programs)
+- 15-page project description limit (most programs; includes Results from Prior NSF Support, max 5 pages)
 - Emphasis on education, diversity, and societal benefit
 - Collaborative research encouraged
 - Open data and open science emphasis
@@ -493,7 +484,7 @@ Develop realistic budgets that align with the proposed work and agency guideline
 **NIH**:
 - Modular budgets for ≤$250K direct costs per year (R01)
 - Detailed budgets for >$250K or complex awards
-- Salary cap applies (~$221,900 for 2024)
+- Salary cap: Executive Level II (updated annually; see [NIH Salary Cap Summary](https://grants.nih.gov/policy-and-compliance/policy-topics/nih-fiscal-policies/salary-cap-summary)) — e.g., $228,000 effective January 1, 2026 ([NOT-OD-26-034](https://grants.nih.gov/grants/guide/notice-files/NOT-OD-26-034.html)); cap applies to direct and indirect salaries for awards issued on or after October 1, 2024 ([NOT-OD-25-025](https://grants.nih.gov/grants/guide/notice-files/NOT-OD-25-025.html))
 - Limited to 1 month (8.33% FTE) for most PIs
 
 **DOE**:
@@ -591,6 +582,11 @@ Varies by program office, but generally includes:
 - Potential contribution to DARPA mission
 - Realism of proposed costs and availability of funds
 
+Frame proposals with DARPA-style impact questions when appropriate:
+- **What if you succeed?** — Impact if the research works
+- **What if you're right?** — Implications of your hypothesis
+- **Who cares?** — Why it matters for national security
+
 ### NSTC Review Criteria
 
 **Core Evaluation Dimensions**:
@@ -600,9 +596,6 @@ Varies by program office, but generally includes:
 4. **Value (價值)**: Academic contribution and societal/industrial impact.
 
 For detailed review criteria, refer to `references/nstc_guidelines.md`.
-- **What if you succeed?** (Impact if the research works)
-- **What if you're right?** (Implications of your hypothesis)
-- **Who cares?** (Why it matters for national security)
 
 
 ## Writing Principles for Competitive Proposals
@@ -903,6 +896,7 @@ For detailed review criteria, refer to `references/nstc_guidelines.md`.
 ## Integration with Other Skills
 
 This skill works effectively with:
+- **Scientific Schematics**: Optional AI-generated grant figures (`--doc-type grant`)
 - **Scientific Writing**: For clear, compelling prose
 - **Literature Review**: For comprehensive background sections
 - **Peer Review**: For self-assessment before submission
@@ -928,10 +922,6 @@ Load these references as needed when working on specific aspects of grant writin
 - `assets/nsf_project_summary_template.md`: NSF project summary structure
 - `assets/nih_specific_aims_template.md`: NIH specific aims page template
 - `assets/budget_justification_template.md`: Budget justification structure
-
-## Scripts and Tools
-
-- `scripts/generate_schematic.py`: Generate scientific diagrams and schematics
 
 ---
 

@@ -38,6 +38,8 @@ Molecular property prediction involves predicting chemical, physical, or biologi
 
 Standard task for graph-level property prediction supporting both classification and regression.
 
+**TorchDrug 0.2.1+:** `predict()` returns values on the **original scale** (not standardized). Update thresholds and downstream metrics if migrating from older versions.
+
 **Key Parameters:**
 - `model`: Graph representation model (GNN)
 - `task`: "node", "edge", or "graph" level prediction

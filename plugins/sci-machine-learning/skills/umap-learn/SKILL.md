@@ -3,7 +3,8 @@ name: umap-learn
 description: UMAP dimensionality reduction. Fast nonlinear manifold learning for 2D/3D visualization, clustering preprocessing (HDBSCAN), supervised/parametric UMAP, for high-dimensional data.
 license: BSD-3-Clause license
 metadata:
-    skill-author: K-Dense Inc.
+  version: "1.0"
+  skill-author: K-Dense Inc.
 ---
 
 # UMAP-Learn
@@ -16,8 +17,10 @@ UMAP (Uniform Manifold Approximation and Projection) is a dimensionality reducti
 
 ### Installation
 
+Requires Python 3.9+. Pin to a verified release:
+
 ```bash
-uv pip install umap-learn
+uv pip install umap-learn==0.5.12
 ```
 
 ### Basic Usage
@@ -210,6 +213,12 @@ UMAP serves as effective preprocessing for density-based clustering algorithms l
 
 ### Clustering Workflow
 
+Install HDBSCAN separately for density-based clustering:
+
+```bash
+uv pip install hdbscan
+```
+
 ```python
 import umap
 import hdbscan
@@ -309,7 +318,7 @@ print(f"Test accuracy: {accuracy:.3f}")
 
 **Performance:** Transform operations are efficient (typically <1 second), though initial calls may be slower due to Numba JIT compilation.
 
-**Scikit-learn compatibility:** UMAP follows standard sklearn conventions and works seamlessly in pipelines:
+**Scikit-learn compatibility:** UMAP follows standard sklearn conventions and works seamlessly in pipelines. Since 0.5.x, `UMAP` implements `get_feature_names_out()` for sklearn column-transformer pipelines:
 
 ```python
 from sklearn.pipeline import Pipeline
@@ -322,6 +331,7 @@ pipeline = Pipeline([
 
 pipeline.fit(X_train, y_train)
 predictions = pipeline.predict(X_test)
+feature_names = pipeline.named_steps['umap'].get_feature_names_out()
 ```
 
 ## Advanced Features
@@ -338,8 +348,8 @@ Parametric UMAP replaces direct embedding optimization with a learned neural net
 
 **Installation:**
 ```bash
-uv pip install umap-learn[parametric_umap]
-# Requires TensorFlow 2.x
+uv pip install "umap-learn[parametric-umap]==0.5.12"
+# Requires TensorFlow 2.x (install separately if needed)
 ```
 
 **Basic usage:**
@@ -463,10 +473,20 @@ UMAP uses stochastic optimization, so results will vary slightly between runs wi
 **Issue:** Slow performance on large datasets
 - **Solution:** Set `low_memory=True` (default), or consider dimensionality reduction with PCA first
 
+**Issue:** NaN or inf values in input data
+- **Solution:** Impute or drop invalid rows before fitting (0.5.6+ accepts NaN/inf in some paths, but clean numeric input is still recommended)
+
 **Issue:** All points collapsed to single cluster
 - **Solution:** Check data preprocessing (ensure proper scaling), increase `min_dist`
 
 ## Resources
+
+### Official documentation
+
+- [UMAP user guide](https://umap-learn.readthedocs.io/en/latest/)
+- [Release notes](https://umap-learn.readthedocs.io/en/latest/release_notes.html)
+- [PyPI package](https://pypi.org/project/umap-learn/) (current stable: 0.5.12)
+- [GitHub repository](https://github.com/lmcinnes/umap)
 
 ### references/
 
