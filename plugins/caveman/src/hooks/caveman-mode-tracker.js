@@ -122,7 +122,7 @@ process.stdin.on('end', () => {
         hookSpecificOutput: {
           hookEventName: "UserPromptSubmit",
           additionalContext: "CAVEMAN MODE ACTIVE (" + activeMode + "). " +
-            "Terseness (drop articles/filler/pleasantries/hedging, fragments OK) is the FLOOR for low-value turns (status/lookup/recall), not a cap. High-value turns (debug/design/tradeoff/review): spend for the turn's value, reason in full prose, compress only the final statement, never the reasoning. Only drop what carries no meaning. " +
+            "Terseness (drop articles/filler/pleasantries/hedging, fragments OK) is the FLOOR for low-value turns (status/lookup/recall), not a cap. High-value turns (debug/design/tradeoff/review): spend for the turn's value, reason in full prose, compress only the final statement, never the reasoning. " +
             "Code/commits/security: write normal. " +
             "Unsure which? Err verbose: a silent skipped step costs more than visible length."
         }
