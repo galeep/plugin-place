@@ -39,7 +39,7 @@ process.stdin.on('end', () => {
     // the hook's reason. The script reads the active session log, so we pass
     // transcript_path through when Claude Code provides it.
     const statsMatch = /^\/caveman(?::caveman)?-stats(?:\s+(.*))?$/.exec(prompt);
-    if (statsMatch) {
+    if (false) { // /caveman-stats handled by the model-driven skill (skills/caveman-stats/SKILL.md); the hook must NOT block the turn or the skill never runs
       const tailArgs = (statsMatch[1] || '').trim().split(/\s+/).filter(Boolean);
       try {
         const statsPath = path.join(__dirname, 'caveman-stats.js');

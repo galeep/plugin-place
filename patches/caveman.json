@@ -49,6 +49,12 @@
       "why": "Consistency with edit #6: SKILL.md is no longer a hook contract; it documents the model-driven execution path.",
       "find": "hook contract and mechanics",
       "replace": "how the skill runs the stats script"
+    },
+    {
+      "file": "src/hooks/caveman-mode-tracker.js",
+      "why": "Completes the /caveman-stats fix (pairs with the model-driven SKILL.md edit). The statsMatch block returns decision:block, which suppresses the /caveman-stats turn before the model runs, so the model-driven skill never fires and the harness drops the block's stats output -> nothing renders. Disabling the block lets /caveman-stats reach the model, which then runs the script per the skill. Verified in-harness: /caveman:caveman-stats dispatches to the model and renders stats.",
+      "find": "if (statsMatch) {",
+      "replace": "if (false) { // /caveman-stats handled by the model-driven skill (skills/caveman-stats/SKILL.md); the hook must NOT block the turn or the skill never runs"
     }
   ]
 }
