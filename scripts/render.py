@@ -313,6 +313,16 @@ def apply_downstream_patches(plugin_name: str, required: bool = False) -> int:
                 raise SystemExit(
                     f"patch {plugin_name} edit #{i}: missing required key {key!r}"
                 )
+        find = edit["find"]
+        replace = edit["replace"]
+        if not isinstance(find, str) or not find:
+            raise SystemExit(
+                f"patch {plugin_name} edit #{i}: 'find' must be a non-empty string"
+            )
+        if not isinstance(replace, str):
+            raise SystemExit(
+                f"patch {plugin_name} edit #{i}: 'replace' must be a string"
+            )
         rel = edit["file"]
         target = plugin_dir / rel
         if not target.is_file():
@@ -321,12 +331,18 @@ def apply_downstream_patches(plugin_name: str, required: bool = False) -> int:
             )
 
         content = target.read_text()
-        if edit["replace"] in content:
+        # Re-entrancy guard, scoped to INSERTION edits (the anchor is preserved
+        # inside its own replacement). For those a completed apply leaves both
+        # find and replace present, so count(find) can't tell pristine from
+        # already-applied and the replace-present check disambiguates.
+        # Non-insertion edits consume their anchor, so a re-run drift-aborts on
+        # its own; we skip the check for them to avoid a false abort when the
+        # replacement text legitimately recurs elsewhere in the file.
+        if find in replace and replace in content:
             raise SystemExit(
                 f"patch {plugin_name} edit #{i}: replacement already present in "
                 f"{rel} — non-pristine tree (patches must run on a fresh build)"
             )
-        find = edit["find"]
         occurrences = content.count(find)
         if occurrences == 0:
             raise SystemExit(
@@ -340,7 +356,7 @@ def apply_downstream_patches(plugin_name: str, required: bool = False) -> int:
                 f'{occurrences}x in {rel}; make it unique or set "all": true. '
                 f"Anchor starts: {find[:70]!r}"
             )
-        target.write_text(content.replace(find, edit["replace"]))
+        target.write_text(content.replace(find, replace))
         applied += 1
 
     if applied == 0:
