@@ -3,7 +3,8 @@ name: torchdrug
 description: PyTorch-native graph neural networks for molecules and proteins. Use when building custom GNN architectures for drug discovery, protein modeling, or knowledge graph reasoning. Best for custom model development, protein property prediction, retrosynthesis. For pre-trained models and diverse featurizers use deepchem; for benchmark datasets use pytdc.
 license: Apache-2.0 license
 metadata:
-    skill-author: K-Dense Inc.
+  version: "1.0"
+  skill-author: K-Dense Inc.
 ---
 
 # TorchDrug
@@ -42,15 +43,21 @@ This skill should be used when working with:
 
 ### Installation
 
+TorchDrug **0.2.1** (latest on PyPI, July 2023) requires **Python 3.7–3.10** and **PyTorch 1.8–2.0**. Install PyTorch and `torch-scatter` / `torch-cluster` first (wheel URL depends on your PyTorch and CUDA versions — see [installation docs](https://torchdrug.ai/docs/installation.html)).
+
 ```bash
-uv pip install torchdrug
-# Or with optional dependencies
-uv pip install torchdrug[full]
+uv pip install torch
+# Match torch/CUDA in the URL, e.g. torch-2.0.0+cu118 or cpu
+uv pip install torch-scatter torch-cluster -f https://pytorch-geometric.com/whl/torch-2.0.0+cu118.html
+uv pip install torchdrug==0.2.1
 ```
+
+On Apple Silicon, compile scatter/cluster from source; TorchDrug runs on CPU only (no MPS). Conda: `conda install torchdrug -c milagraph -c conda-forge -c pytorch -c pyg`.
 
 ### Quick Example
 
 ```python
+import torch
 from torchdrug import datasets, models, tasks
 from torch.utils.data import DataLoader
 
@@ -425,9 +432,15 @@ For deep dives into TorchDrug's architecture:
 → Post-process with RDKit validation
 → See `references/molecular_generation.md` → Validation and Filtering
 
+## Version Notes (0.2.1)
+
+- `PropertyPrediction.predict()` returns **original-scale** values (not standardized); code written for older TorchDrug may need metric/threshold updates ([release notes](https://github.com/DeepGraphLearning/torchdrug/releases/tag/v0.2.1)).
+- Dataset constructors prefer `atom_feature` / `bond_feature` / `mol_feature`; `node_feature` / `edge_feature` / `graph_feature` are deprecated aliases.
+- `EvolutionaryScaleModeling` supports ESM-2 checkpoints in addition to ESM-1b.
+
 ## Resources
 
-**Official Documentation:** https://torchdrug.ai/docs/
+**Official Documentation:** https://torchdrug.ai/docs/ (0.2.1)
 **GitHub:** https://github.com/DeepGraphLearning/torchdrug
 **Paper:** TorchDrug: A Powerful and Flexible Machine Learning Platform for Drug Discovery
 

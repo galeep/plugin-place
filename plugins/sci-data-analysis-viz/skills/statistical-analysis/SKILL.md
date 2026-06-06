@@ -3,7 +3,8 @@ name: statistical-analysis
 description: Guided statistical analysis with test selection and reporting. Use when you need help choosing appropriate tests for your data, assumption checking, power analysis, and APA-formatted results. Best for academic research reporting, test selection guidance. For implementing specific models programmatically use statsmodels.
 license: MIT license
 metadata:
-    skill-author: K-Dense Inc.
+  version: "1.0"
+  skill-author: K-Dense Inc.
 ---
 
 # Statistical Analysis
@@ -22,6 +23,28 @@ This skill should be used when:
 - Calculating effect sizes and conducting power analyses
 - Reporting statistical results in APA format
 - Analyzing experimental or observational data for research
+
+---
+
+## Installation
+
+Use **uv** to install the libraries used in this skill. Pin versions in production; unpinned installs are fine for exploration.
+
+```bash
+# Core frequentist stack (Python 3.10+; 3.12+ recommended for latest SciPy/ArviZ)
+uv pip install "pingouin>=0.6" "scipy>=1.11" "statsmodels>=0.14.6" pandas matplotlib seaborn
+
+# Bayesian modeling (PyMC 5 + ArviZ; ArviZ 0.23+ requires Python 3.12+)
+uv pip install "pymc>=5.0" "arviz>=0.17"
+```
+
+**Compatibility notes (2025–2026):**
+
+- **Pingouin 0.5+** renamed output columns (`p_val`, `cohen_d`, `CI95`, `p_unc`) — examples below use the current names.
+- **statsmodels + SciPy**: use `statsmodels>=0.14.6` with `scipy>=1.11` to avoid `_lazywhere` import errors on SciPy 1.16+.
+- **Pingouin Bayes Factors**: one-sided BF for t-tests was removed in 0.5+; use dedicated packages (e.g. JASP, BayesFactor via R) or PyMC for hypothesis testing.
+
+For model-specific APIs (OLS, GLM, ARIMA), see the **statsmodels** skill. For PyMC workflows, see the **pymc** skill.
 
 ---
 
@@ -119,10 +142,10 @@ All tests have Bayesian versions that provide:
 
 **ALWAYS check assumptions before interpreting test results.**
 
-Use the provided `scripts/assumption_checks.py` module for automated checking:
+Use the bundled `scripts/assumption_checks.py` module for automated checking. Run Python from the skill directory (`skills/statistical-analysis/`) or add `scripts/` to `sys.path`:
 
 ```python
-from scripts.assumption_checks import comprehensive_assumption_check
+from assumption_checks import comprehensive_assumption_check
 
 # Comprehensive check with visualizations
 results = comprehensive_assumption_check(
@@ -144,7 +167,7 @@ This performs:
 For targeted checks, use individual functions:
 
 ```python
-from scripts.assumption_checks import (
+from assumption_checks import (
     check_normality,
     check_normality_per_group,
     check_homogeneity_of_variance,
@@ -206,13 +229,13 @@ import numpy as np
 # Run independent t-test
 result = pg.ttest(group_a, group_b, correction='auto')
 
-# Extract results
+# Extract results (Pingouin 0.5+ column names)
 t_stat = result['T'].values[0]
 df = result['dof'].values[0]
-p_value = result['p-val'].values[0]
-cohens_d = result['cohen-d'].values[0]
-ci_lower = result['CI95%'].values[0][0]
-ci_upper = result['CI95%'].values[0][1]
+p_value = result['p_val'].values[0]
+cohens_d = result['cohen_d'].values[0]
+ci = result['CI95'].values[0]
+ci_lower, ci_upper = ci[0], ci[1]
 
 # Report
 print(f"t({df:.0f}) = {t_stat:.2f}, p = {p_value:.3f}")
@@ -229,7 +252,7 @@ aov = pg.anova(dv='score', between='group', data=df, detailed=True)
 print(aov)
 
 # If significant, conduct post-hoc tests
-if aov['p-unc'].values[0] < 0.05:
+if aov['p_unc'].values[0] < 0.05:
     posthoc = pg.pairwise_tukey(dv='score', between='group', data=df)
     print(posthoc)
 
@@ -356,7 +379,7 @@ Most effect sizes are automatically calculated by pingouin:
 ```python
 # T-test returns Cohen's d
 result = pg.ttest(x, y)
-d = result['cohen-d'].values[0]
+d = result['cohen_d'].values[0]
 
 # ANOVA returns partial eta-squared
 aov = pg.anova(dv='score', between='group', data=df)

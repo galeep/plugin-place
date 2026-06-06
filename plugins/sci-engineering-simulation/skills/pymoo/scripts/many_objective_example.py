@@ -22,7 +22,7 @@ def run_many_objective_optimization():
 
     # Generate reference directions for NSGA-III
     # Das-Dennis method for uniform distribution
-    ref_dirs = get_reference_directions("das-dennis", n_obj, n_partitions=12)
+    ref_dirs = get_reference_directions("das-dennis", n_obj=n_obj, n_partitions=12)
 
     print(f"Number of reference directions: {len(ref_dirs)}")
 

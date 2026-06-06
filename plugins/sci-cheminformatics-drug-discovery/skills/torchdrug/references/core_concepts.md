@@ -306,6 +306,12 @@ task = tasks.PropertyPrediction(
 )
 ```
 
+## Version Notes (0.2.1)
+
+- Pin installs with `uv pip install torchdrug==0.2.1` (Python 3.7–3.10, PyTorch 1.8–2.0).
+- `PropertyPrediction.predict()` returns unstandardized targets/predictions (breaking vs older releases).
+- Prefer `atom_feature` / `bond_feature` on dataset constructors; `node_feature` / `edge_feature` are deprecated aliases (dataset properties like `node_feature_dim` are unchanged).
+
 ## Training Workflow
 
 ### Standard Training Loop
@@ -342,19 +348,34 @@ for epoch in range(100):
         loss.backward()
         optimizer.step()
 
-    # Validate
-    task.eval()
-    preds, targets = [], []
-    for batch in valid_loader:
-        pred = task.predict(batch)
-        target = task.target(batch)
-        preds.append(pred)
-        targets.append(target)
+    # Validate (inference_mode disables autograd; train(False) disables dropout/BN)
+    with torch.inference_mode():
+        task.train(False)
+        preds, targets = [], []
+        for batch in valid_loader:
+            pred = task.predict(batch)
+            target = task.target(batch)
+            preds.append(pred)
+            targets.append(target)
 
-    preds = torch.cat(preds)
-    targets = torch.cat(targets)
-    metrics = task.evaluate(preds, targets)
-    print(f"Epoch {epoch}: {metrics}")
+        preds = torch.cat(preds)
+        targets = torch.cat(targets)
+        metrics = task.evaluate(preds, targets)
+        print(f"Epoch {epoch}: {metrics}")
+    task.train(True)
+```
+
+### Built-in Engine (`core.Engine`)
+
+For standard train/validate loops without hand-written epochs, use the configurable engine:
+
+```python
+from torchdrug import core
+
+solver = core.Engine(task, train_set, valid_set, test_set, optimizer,
+                     gpus=[0], batch_size=32)
+solver.train(num_epoch=100)
+solver.evaluate("valid")
 ```
 
 ### PyTorch Lightning Integration
@@ -368,6 +389,7 @@ class LightningWrapper(pl.LightningModule):
     def __init__(self, task):
         super().__init__()
         self.task = task
+        self._val_outputs = []
 
     def training_step(self, batch, batch_idx):
         loss = self.task(batch)
@@ -376,13 +398,14 @@ class LightningWrapper(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         pred = self.task.predict(batch)
         target = self.task.target(batch)
-        return {"pred": pred, "target": target}
+        self._val_outputs.append({"pred": pred, "target": target})
 
-    def validation_epoch_end(self, outputs):
-        preds = torch.cat([o["pred"] for o in outputs])
-        targets = torch.cat([o["target"] for o in outputs])
+    def on_validation_epoch_end(self):
+        preds = torch.cat([o["pred"] for o in self._val_outputs])
+        targets = torch.cat([o["target"] for o in self._val_outputs])
         metrics = self.task.evaluate(preds, targets)
         self.log_dict(metrics)
+        self._val_outputs.clear()
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=1e-3)
