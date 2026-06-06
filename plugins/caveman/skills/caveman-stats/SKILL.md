@@ -7,4 +7,12 @@ description: >
   the model itself does not compute the numbers.
 ---
 
-This skill is delivered by `hooks/caveman-stats.js` (read by `hooks/caveman-mode-tracker.js` on `/caveman-stats`). The model does not need to do anything when this skill fires — the hook returns `decision: "block"` with the formatted stats as the reason. The user sees the numbers immediately.
+When this skill fires (the user typed `/caveman-stats`), run the stats script and show its stdout to the user verbatim. Do not recompute or estimate the numbers yourself.
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/src/hooks/caveman-stats.js"
+```
+
+The script reads the current Claude Code session log directly, auto-locating the most recent session under `~/.claude/projects/`, and prints real token usage plus an estimated savings figure from the benchmark. Optional flags: `--share` (shareable summary), `--all` (all sessions), `--since 7d` or `--since 24h` (limit the window).
+
+Why the skill runs the script instead of relying on a hook: historically `caveman-mode-tracker.js` returned `decision: "block"` with the stats as the reason, but the harness drops that block-decision when `/caveman-stats` dispatches as a skill, so nothing renders. Running the script from the skill sidesteps that.
