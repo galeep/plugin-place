@@ -586,10 +586,12 @@ def compile_rules(spec):
     return [(r["domain"], re.compile(r["pattern"])) for r in spec["rules"]]
 
 
-def classify_text(haystack, compiled_rules):
-    """First domain whose pattern matches `haystack`, else None."""
-    for domain, rx in compiled_rules:
-        if rx.search(haystack):
+def classify_text(haystack, rules):
+    """First domain whose pattern matches `haystack`, else None. `rules` is a
+    list of (domain, pattern) where pattern may be a raw string OR a compiled
+    regex — `re.search` accepts both."""
+    for domain, pattern in rules:
+        if re.search(pattern, haystack):
             return domain
     return None
 
