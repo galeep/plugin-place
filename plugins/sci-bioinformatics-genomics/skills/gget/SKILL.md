@@ -1,5 +1,6 @@
 ---
 name: gget
+author: "K-Dense Inc. via galeep"
 description: "Fast CLI/Python queries to 20+ bioinformatics databases. Use for quick lookups: gene info, BLAST searches, AlphaFold structures, enrichment analysis. Best for interactive exploration, simple queries. For batch processing or advanced BLAST use biopython; for multi-database Python workflows use bioservices."
 license: BSD-2-Clause license
 metadata:

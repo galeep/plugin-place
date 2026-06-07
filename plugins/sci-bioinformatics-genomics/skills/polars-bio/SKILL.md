@@ -1,5 +1,6 @@
 ---
 name: polars-bio
+author: "K-Dense Inc. via galeep"
 description: High-performance genomic interval operations and bioinformatics file I/O on Polars DataFrames. Overlap, nearest, merge, coverage, complement, subtract for BED/VCF/BAM/GFF intervals. Streaming, cloud-native, faster bioframe alternative.
 license: Apache-2.0
 allowed-tools: Read Write Edit Bash

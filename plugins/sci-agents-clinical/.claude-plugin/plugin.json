@@ -1,0 +1,14 @@
+{
+  "name": "sci-agents-clinical",
+  "version": "0.1.0",
+  "description": "Expert-thinking subagents for clinical, population, and translational science: epidemiology, clinical trials, regulatory affairs, pharmacovigilance, and public/global health.",
+  "author": {
+    "name": "K-Dense, Inc. via galeep"
+  },
+  "homepage": "https://github.com/K-Dense-AI/scientific-agents",
+  "license": "MIT",
+  "keywords": [
+    "scientific-agents",
+    "scientific-agents"
+  ]
+}

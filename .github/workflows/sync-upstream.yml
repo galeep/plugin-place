@@ -62,10 +62,14 @@ jobs:
           import yaml
           c = yaml.safe_load(open("plugins.yaml"))
           for name, up in c["upstreams"].items():
+              tag = up.get("pinned_tag")
+              if not tag:
+                  # SHA-pinned upstreams (no pinned_tag) are bumped manually, not
+                  # by this tag-tracking cron. Skip them.
+                  continue
               path = up["submodule"]
               sub = path.split("/")[-1]
               repo = up["upstream_repo"]
-              tag = up["pinned_tag"]
               print(f"{name}\t{path}\t{sub}\t{repo}\t{tag}")
           ')"
 
@@ -144,14 +148,15 @@ jobs:
           config = yaml.safe_load(src)
 
           for name, up in config["upstreams"].items():
-              old_tag = up["pinned_tag"]
               new_tag = resolved.get(name)
               if not new_tag:
-                  # Not advanced by the check step; keep the existing pin. Logged
-                  # so a skipped upstream is visible rather than silently absent.
-                  print(f"  {name}: not bumped by check step, keeping pin {old_tag}")
+                  # Not advanced by the check step (includes SHA-pinned upstreams
+                  # the check step skips). Keep the existing pin. Logged so a
+                  # skipped upstream is visible rather than silently absent.
+                  print(f"  {name}: not bumped by check step, keeping pin")
                   continue
-              if old_tag != new_tag:
+              old_tag = up.get("pinned_tag")
+              if old_tag and old_tag != new_tag:
                   # Replace via string substitution to preserve formatting
                   needle = f'pinned_tag: {old_tag}'
                   replacement = f'pinned_tag: {new_tag}'

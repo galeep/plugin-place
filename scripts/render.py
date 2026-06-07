@@ -16,6 +16,14 @@ except ImportError:
     print("PyYAML required. Install with: pip install pyyaml", file=sys.stderr)
     sys.exit(1)
 
+# render.py runs as a script (`python scripts/render.py`), so sys.path[0] is
+# scripts/ and `from scripts.lib import ...` would fail. Add the repo root the
+# same way scripts/seed_assignments.py does.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from scripts.lib import tables, attribution, licenses  # noqa: E402
+from scripts.lib import frontmatter as fm  # noqa: E402
+from scripts.lib import agents as agents_lib  # noqa: E402
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PLUGINS_YAML = REPO_ROOT / "plugins.yaml"
 PLUGINS_DIR = REPO_ROOT / "plugins"
@@ -47,6 +55,43 @@ def write_json(path: Path, data: dict) -> None:
     path.write_text(json.dumps(data, indent=2) + "\n")
 
 
+def upstream_version(upstream):
+    """Human-facing pin label: prefer tag, fall back to SHA."""
+    return upstream.get("pinned_tag") or upstream.get("pinned_sha") or "unpinned"
+
+
+def attribute_skill_tree(skills_dir: Path, fallback_author=None) -> None:
+    """Inject the `via galeep` vendor author into every SKILL.md one level under
+    skills_dir. Uses each file's metadata.skill-author, else `fallback_author`,
+    else a bare vendor mark. Skips files without frontmatter (nothing to edit).
+
+    Used for vendored/vendored-whole plugins (caveman, claude-scientific-writer);
+    built plugins do the same inline alongside license collection.
+    """
+    if not skills_dir.is_dir():
+        return
+    for skill_dir in sorted(skills_dir.iterdir()):
+        skill_md = skill_dir / "SKILL.md"
+        if not skill_md.is_file():
+            continue
+        text = skill_md.read_text()
+        head, _ = fm.split_frontmatter(text)
+        if head is None:
+            # A SKILL.md with no YAML frontmatter is malformed (no name/description
+            # either) and cannot be attributed without fabricating fields. Surface
+            # it loudly rather than silently leaving it unmarked.
+            print(
+                f"WARN: {skill_md.relative_to(PLUGINS_DIR)} has no frontmatter; "
+                f"skipping attribution (malformed skill)",
+                file=sys.stderr,
+            )
+            continue
+        original = fm.get_nested_field(head, "metadata", "skill-author")
+        skill_md.write_text(
+            fm.inject_author(text, attribution.skill_author(original, fallback_author))
+        )
+
+
 def clean_built_plugins() -> None:
     """Remove plugins/ entries that are regenerated (built + vendored).
     Local plugins (kind: local) are NEVER touched."""
@@ -56,15 +101,21 @@ def clean_built_plugins() -> None:
     regenerated = {
         p["name"]
         for p in config["plugins"]
-        if p["kind"] in ("built", "vendored", "vendored-whole")
+        if p["kind"] in ("built", "vendored", "vendored-whole", "agents")
     }
     for entry in PLUGINS_DIR.iterdir():
         if entry.is_dir() and entry.name in regenerated:
             shutil.rmtree(entry)
 
 
-def build_built_plugin(plugin: dict, upstream: dict) -> None:
-    """Copy skills from upstream submodule into plugins/<name>/skills/."""
+def build_built_plugin(plugin: dict, upstream: dict, skills_table: dict) -> None:
+    """Copy skills from upstream submodule into plugins/<name>/skills/.
+
+    Membership comes from the locked assignment table (skills_table), not the
+    plugin entry. Each vendored SKILL.md gets the `via galeep` author injected
+    and its normalized license collected; the plugin's license is the resolved
+    union of its members'.
+    """
     name = plugin["name"]
     submodule_path = REPO_ROOT / upstream["submodule"]
     skills_root = submodule_path / upstream["skills_root"]
@@ -73,8 +124,10 @@ def build_built_plugin(plugin: dict, upstream: dict) -> None:
     skills_dir = plugin_dir / "skills"
     skills_dir.mkdir(parents=True, exist_ok=True)
 
+    member_skills = tables.members_for(skills_table, name)
+
     missing = []
-    for skill_name in plugin["skills"]:
+    for skill_name in member_skills:
         src = skills_root / skill_name
         if not src.is_dir():
             missing.append(skill_name)
@@ -86,8 +139,27 @@ def build_built_plugin(plugin: dict, upstream: dict) -> None:
     if missing:
         raise SystemExit(
             f"ERROR: plugin {name!r} references skills not present in "
-            f"{upstream['submodule']} @ {upstream['pinned_tag']}: {missing}"
+            f"{upstream['submodule']} @ {upstream_version(upstream)}: {missing}"
         )
+
+    # Inject the vendor author into each copied SKILL.md and collect its
+    # normalized license for the plugin-level resolution.
+    plugin_licenses = []
+    skill_license_lines = []
+    for skill_name in member_skills:
+        skill_md = skills_dir / skill_name / "SKILL.md"
+        text = skill_md.read_text()
+        head, _ = fm.split_frontmatter(text)
+        original = fm.get_nested_field(head, "metadata", "skill-author")
+        skill_md.write_text(
+            fm.inject_author(
+                text, attribution.skill_author(original, upstream.get("author"))
+            )
+        )
+        normalized = licenses.normalize(fm.get_field(head, "license"))
+        plugin_licenses.append(normalized)
+        skill_license_lines.append(f"- `{skill_name}`: {normalized}")
+    plugin_license = licenses.resolve_plugin_license(plugin_licenses)
 
     write_json(
         plugin_dir / ".claude-plugin" / "plugin.json",
@@ -97,29 +169,78 @@ def build_built_plugin(plugin: dict, upstream: dict) -> None:
             "description": plugin["description"],
             "author": {"name": "galeep"},
             "homepage": "https://github.com/galeep/plugin-place",
-            "license": upstream["license"],
+            "license": plugin_license,
             "keywords": ["scientific-skills", upstream["upstream_repo"].split("/")[1]],
         },
     )
 
     readme = plugin_dir / "README.md"
-    skill_list = "\n".join(f"- `{s}`" for s in plugin["skills"])
+    skill_list = "\n".join(f"- `{s}`" for s in member_skills)
+    license_list = "\n".join(skill_license_lines)
     readme.write_text(
         f"""# {name}
 
 {plugin["description"]}
 
-## Skills ({len(plugin["skills"])})
+## Skills ({len(member_skills)})
 
 {skill_list}
 
+## Licenses
+
+{license_list}
+
 ## Provenance
 
-Built from [{upstream['upstream_repo']}](https://github.com/{upstream['upstream_repo']}) @ `{upstream['pinned_tag']}`.
-Skills are vendored copies under [MIT license]({upstream['license']}). All credit to K-Dense AI.
+Built from [{upstream['upstream_repo']}](https://github.com/{upstream['upstream_repo']}) @ `{upstream_version(upstream)}`.
+Skills are vendored copies; per-skill licenses are listed above. All credit to K-Dense AI.
 
 This plugin is generated by `scripts/build.sh` from `plugins.yaml`. Edits here will be overwritten on rebuild.
 """
+    )
+
+
+def build_agents_plugin(plugin, upstream, agents_table, catalog_by_slug):
+    name = plugin["name"]
+    submodule = REPO_ROOT / upstream["submodule"]
+    agents_root = submodule / upstream["agents_root"]
+    plugin_dir = PLUGINS_DIR / name
+    agents_dir = plugin_dir / "agents"
+    agents_dir.mkdir(parents=True, exist_ok=True)
+
+    members = tables.members_for(agents_table, name)
+    for slug in members:
+        meta = catalog_by_slug[slug]
+        profile = (agents_root / slug / "AGENTS.md").read_text()
+        out = agents_lib.synth_subagent(
+            profile_text=profile,
+            slug=slug,
+            profession=meta["profession"],
+            summary=meta["summary"],
+            author=attribution.AGENT_AUTHOR,
+        )
+        (agents_dir / f"{slug}.md").write_text(out)
+
+    write_json(plugin_dir / ".claude-plugin" / "plugin.json", {
+        "name": name,
+        "version": "0.1.0",
+        "description": plugin["description"],
+        "author": {"name": attribution.AGENT_AUTHOR},
+        "homepage": f"https://github.com/{upstream['upstream_repo']}",
+        "license": upstream["license"],
+        "keywords": ["scientific-agents", upstream["upstream_repo"].split("/")[1]],
+    })
+
+    agent_list = "\n".join(
+        f"- `{s}` — {catalog_by_slug[s]['profession']}" for s in members
+    )
+    plugin_dir.joinpath("README.md").write_text(
+        f"# {name}\n\n{plugin['description']}\n\n## Agents ({len(members)})\n\n"
+        f"{agent_list}\n\n## Provenance\n\nVendored from "
+        f"[{upstream['upstream_repo']}](https://github.com/{upstream['upstream_repo']}) "
+        f"@ `{upstream_version(upstream)}`. Licensed under {upstream['license']}. "
+        f"All credit to K-Dense AI. Generated by `scripts/build.sh`; edit "
+        f"`taxonomy/agents.yaml`, not these files.\n"
     )
 
 
@@ -149,6 +270,9 @@ def build_vendored_plugin(plugin: dict, upstream: dict) -> None:
                 continue
             print(f"  dropping container directory: {container.name}/", file=sys.stderr)
             shutil.rmtree(container)
+
+    # Inject the `via galeep` vendor author into every copied SKILL.md.
+    attribute_skill_tree(skills_root_dir, upstream.get("author"))
 
     # If upstream has .mcp.json or .lsp.json at root, copy those too.
     for mcp_file in (".mcp.json", ".lsp.json"):
@@ -186,7 +310,7 @@ def build_vendored_plugin(plugin: dict, upstream: dict) -> None:
 
 ## Provenance
 
-Vendored from [{upstream['upstream_repo']}](https://github.com/{upstream['upstream_repo']}) @ `{upstream['pinned_tag']}`.
+Vendored from [{upstream['upstream_repo']}](https://github.com/{upstream['upstream_repo']}) @ `{upstream_version(upstream)}`.
 Licensed under {upstream['license']}. All credit to K-Dense AI.
 
 This plugin is generated by `scripts/build.sh` from `plugins.yaml`. Edits here will be overwritten on rebuild.
@@ -230,6 +354,11 @@ def build_vendored_whole_plugin(plugin: dict, upstream: dict) -> None:
         if s.is_file():
             shutil.copy2(s, plugin_dir / f)
 
+    # Inject the `via galeep` vendor author into every copied SKILL.md. Runs
+    # before apply_downstream_patches (in main); patch anchors live in hook src/
+    # and skill bodies, never the frontmatter name/author region, so this is safe.
+    attribute_skill_tree(plugin_dir / "skills", upstream.get("author"))
+
     # Preserve the upstream manifest verbatim (NOT regenerated) so its hooks/MCP
     # wiring survives. Copy only plugin.json out of .claude-plugin/ — the
     # upstream marketplace.json must not leak into the plugin dir.
@@ -242,7 +371,7 @@ def build_vendored_whole_plugin(plugin: dict, upstream: dict) -> None:
     manifest = json.loads(upstream_manifest.read_text())
     # Backfill a semver version if upstream omits one (validate-plugin.sh warns
     # otherwise). Derive from the pinned tag (vX.Y.Z -> X.Y.Z).
-    manifest.setdefault("version", upstream["pinned_tag"].lstrip("v"))
+    manifest.setdefault("version", upstream_version(upstream).lstrip("v"))
     write_json(plugin_dir / ".claude-plugin" / "plugin.json", manifest)
 
     plugin_dir.joinpath("README.md").write_text(
@@ -252,7 +381,7 @@ def build_vendored_whole_plugin(plugin: dict, upstream: dict) -> None:
 
 ## Provenance
 
-Vendored whole from [{upstream['upstream_repo']}](https://github.com/{upstream['upstream_repo']}) @ `{upstream['pinned_tag']}`.
+Vendored whole from [{upstream['upstream_repo']}](https://github.com/{upstream['upstream_repo']}) @ `{upstream_version(upstream)}`.
 Licensed under {upstream['license']}. All credit to the upstream author.
 
 Downstream edits (if any) are applied from `patches/{name}.json` on every build
@@ -400,7 +529,7 @@ def write_provenance_sidecar(config: dict) -> None:
     for name, up in config["upstreams"].items():
         submodule_path = REPO_ROOT / up["submodule"]
         upstreams[name] = {
-            "pinned_tag": up["pinned_tag"],
+            "version": upstream_version(up),
             "sha": submodule_sha(submodule_path),
             "describe": submodule_describe(submodule_path),
             "repo": up["upstream_repo"],
@@ -411,13 +540,36 @@ def write_provenance_sidecar(config: dict) -> None:
 def main():
     config = yaml.safe_load(PLUGINS_YAML.read_text())
 
+    # Load locked assignment tables and run the coverage gate BEFORE building
+    # anything: every present upstream item must map to a declared plugin, and
+    # the tables must carry no stale entries. A gate failure here is a real
+    # error (fix the table, not silence it).
+    skills_table = tables.load_table(REPO_ROOT / "taxonomy" / "skills.yaml")
+    agents_table = tables.load_table(REPO_ROOT / "taxonomy" / "agents.yaml")
+    declared = {p["name"] for p in config["plugins"]}
+
+    sk_up = config["upstreams"]["scientific-agent-skills"]
+    skills_present = {
+        d.name for d in (REPO_ROOT / sk_up["submodule"] / sk_up["skills_root"]).iterdir()
+        if d.is_dir() and (d / "SKILL.md").exists()
+    }
+    tables.coverage_gate(skills_present, skills_table, declared, "skill")
+
+    ag_up = config["upstreams"]["scientific-agents"]
+    catalog = json.loads(
+        (REPO_ROOT / ag_up["submodule"] / ag_up["catalog"]).read_text()
+    )["agents"]
+    agents_present = {a["slug"] for a in catalog}
+    tables.coverage_gate(agents_present, agents_table, declared, "agent")
+    catalog_by_slug = {a["slug"]: a for a in catalog}
+
     clean_built_plugins()
 
-    built = vendored = vendored_whole = 0
+    built = vendored = vendored_whole = agents_built = 0
     for plugin in config["plugins"]:
         kind = plugin["kind"]
         upstream_name = plugin.get("upstream")
-        if kind in ("built", "vendored", "vendored-whole"):
+        if kind in ("built", "vendored", "vendored-whole", "agents"):
             if upstream_name not in config["upstreams"]:
                 raise SystemExit(
                     f"plugin {plugin['name']} references unknown upstream {upstream_name!r}"
@@ -425,7 +577,7 @@ def main():
             upstream = config["upstreams"][upstream_name]
 
         if kind == "built":
-            build_built_plugin(plugin, upstream)
+            build_built_plugin(plugin, upstream, skills_table)
             built += 1
         elif kind == "vendored":
             build_vendored_plugin(plugin, upstream)
@@ -433,6 +585,9 @@ def main():
         elif kind == "vendored-whole":
             build_vendored_whole_plugin(plugin, upstream)
             vendored_whole += 1
+        elif kind == "agents":
+            build_agents_plugin(plugin, upstream, agents_table, catalog_by_slug)
+            agents_built += 1
         elif kind == "local":
             # local plugins live untouched in plugins/<name>/ already
             pass
@@ -454,8 +609,8 @@ def main():
 
     print(
         f"render.py: built={built} vendored={vendored} "
-        f"vendored-whole={vendored_whole} patched-edits={patched_files} "
-        f"total={len(config['plugins'])}"
+        f"vendored-whole={vendored_whole} agents={agents_built} "
+        f"patched-edits={patched_files} total={len(config['plugins'])}"
     )
 
 

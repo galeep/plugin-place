@@ -1,5 +1,6 @@
 ---
 name: clinical-reports
+author: "K-Dense Inc. via galeep"
 description: Write comprehensive clinical reports including case reports (CARE guidelines), diagnostic reports (radiology/pathology/lab), clinical trial reports (ICH-E3, SAE, CSR), and patient documentation (SOAP, H&P, discharge summaries). Full support with templates, regulatory compliance (HIPAA, FDA, ICH-GCP), and validation tools.
 allowed-tools: Read Write Edit Bash
 license: MIT License

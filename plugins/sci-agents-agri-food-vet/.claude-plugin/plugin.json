@@ -1,0 +1,14 @@
+{
+  "name": "sci-agents-agri-food-vet",
+  "version": "0.1.0",
+  "description": "Expert-thinking subagents for agriculture, food, and veterinary science: agronomy, soil science, crop/animal science, food science, aquaculture, and veterinary medicine.",
+  "author": {
+    "name": "K-Dense, Inc. via galeep"
+  },
+  "homepage": "https://github.com/K-Dense-AI/scientific-agents",
+  "license": "MIT",
+  "keywords": [
+    "scientific-agents",
+    "scientific-agents"
+  ]
+}

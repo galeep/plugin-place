@@ -1,5 +1,6 @@
 ---
 name: simpy
+author: "K-Dense Inc. via galeep"
 description: Process-based discrete-event simulation framework in Python. Use this skill when building simulations of systems with processes, queues, resources, and time-based events such as manufacturing systems, service operations, network traffic, logistics, or any system where entities interact with shared resources over time.
 license: MIT license
 metadata:

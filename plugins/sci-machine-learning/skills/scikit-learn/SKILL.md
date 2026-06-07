@@ -1,5 +1,6 @@
 ---
 name: scikit-learn
+author: "K-Dense Inc. via galeep"
 description: Machine learning in Python with scikit-learn. Use when working with supervised learning (classification, regression), unsupervised learning (clustering, dimensionality reduction), model evaluation, hyperparameter tuning, preprocessing, or building ML pipelines. Provides comprehensive reference documentation for algorithms, preprocessing techniques, pipelines, and best practices.
 license: BSD-3-Clause license
 allowed-tools: Read Write Edit Bash

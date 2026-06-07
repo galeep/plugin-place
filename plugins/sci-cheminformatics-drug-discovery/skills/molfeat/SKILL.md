@@ -1,5 +1,6 @@
 ---
 name: molfeat
+author: "K-Dense Inc. via galeep"
 description: Molecular featurization for ML (100+ featurizers). ECFP, MACCS, descriptors, pretrained models (ChemBERTa), convert SMILES to features, for QSAR and molecular ML.
 license: Apache-2.0 license
 allowed-tools: Read Write Edit Bash

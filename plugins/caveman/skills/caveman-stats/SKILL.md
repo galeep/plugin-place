@@ -1,5 +1,6 @@
 ---
 name: caveman-stats
+author: "Julius Brussee via galeep"
 description: >
   Show real token usage and estimated savings for the current session.
   Reads directly from the Claude Code session log — no AI estimation.

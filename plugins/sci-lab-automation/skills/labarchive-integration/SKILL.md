@@ -1,5 +1,6 @@
 ---
 name: labarchive-integration
+author: "K-Dense Inc. via galeep"
 description: Electronic lab notebook API integration. Access notebooks, manage entries/attachments, backup notebooks, integrate with Protocols.io/Jupyter/REDCap, for programmatic ELN workflows.
 license: Unknown
 metadata:

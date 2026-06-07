@@ -1,5 +1,6 @@
 ---
 name: benchling-integration
+author: "K-Dense Inc. via galeep"
 description: Benchling Python SDK and REST API integration for registry entities, inventory, ELN entries, workflows, Benchling Apps, and Data Warehouse queries. Use when automating lab data with benchling-sdk or the v2 API.
 license: MIT
 allowed-tools: Read Write Edit Bash

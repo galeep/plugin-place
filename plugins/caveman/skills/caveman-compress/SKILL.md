@@ -1,5 +1,6 @@
 ---
 name: caveman-compress
+author: "Julius Brussee via galeep"
 description: >
   Compress natural language memory files (CLAUDE.md, todos, preferences) into caveman format
   to save input tokens. Preserves all technical substance, code, URLs, and structure.

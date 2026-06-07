@@ -7,3 +7,6 @@
 [submodule "vendor/caveman"]
 	path = vendor/caveman
 	url = https://github.com/JuliusBrussee/caveman.git
+[submodule "vendor/scientific-agents"]
+	path = vendor/scientific-agents
+	url = https://github.com/K-Dense-AI/scientific-agents.git

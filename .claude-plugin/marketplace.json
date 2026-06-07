@@ -116,6 +116,90 @@
       "category": "methodology"
     },
     {
+      "name": "sci-agents-molecular-cell-biology",
+      "description": "Expert-thinking subagents for molecular & cell biology: genetics, genomics, omics, biochemistry, biophysics, microbiology, immunology, virology, and structural/synthetic/systems biology.",
+      "source": "./plugins/sci-agents-molecular-cell-biology",
+      "category": "bioinformatics"
+    },
+    {
+      "name": "sci-agents-organismal-eco-biology",
+      "description": "Expert-thinking subagents for organismal, ecological, and evolutionary biology: zoology, botany, physiology, taxonomy, phylogenetics, conservation, and marine/field biology.",
+      "source": "./plugins/sci-agents-organismal-eco-biology",
+      "category": "bioinformatics"
+    },
+    {
+      "name": "sci-agents-medical-specialties",
+      "description": "Expert-thinking subagents for clinical medical specialties: cardiology, oncology, radiology, pathology, neurology, surgery, anesthesiology, pharmacology, and related fields.",
+      "source": "./plugins/sci-agents-medical-specialties",
+      "category": "clinical"
+    },
+    {
+      "name": "sci-agents-clinical",
+      "description": "Expert-thinking subagents for clinical, population, and translational science: epidemiology, clinical trials, regulatory affairs, pharmacovigilance, and public/global health.",
+      "source": "./plugins/sci-agents-clinical",
+      "category": "clinical"
+    },
+    {
+      "name": "sci-agents-chemistry",
+      "description": "Expert-thinking subagents for chemistry: organic, inorganic, physical, analytical, electrochemistry, catalysis, spectroscopy, mass spectrometry, and crystallography.",
+      "source": "./plugins/sci-agents-chemistry",
+      "category": "chemistry"
+    },
+    {
+      "name": "sci-agents-materials-nano",
+      "description": "Expert-thinking subagents for materials science and nanotechnology: metallurgy, ceramics, composites, polymers, semiconductors, energy storage, and nanomaterials.",
+      "source": "./plugins/sci-agents-materials-nano",
+      "category": "chemistry"
+    },
+    {
+      "name": "sci-agents-physics",
+      "description": "Expert-thinking subagents for physics: quantum, optics/photonics, plasma/fusion, particle, nuclear, condensed-matter, statistical, and atomic-molecular-optical physics.",
+      "source": "./plugins/sci-agents-physics",
+      "category": "physics"
+    },
+    {
+      "name": "sci-agents-astronomy-space",
+      "description": "Expert-thinking subagents for astronomy and space science: astrophysics, cosmology, planetary science, heliophysics, exoplanets, and astrodynamics.",
+      "source": "./plugins/sci-agents-astronomy-space",
+      "category": "physics"
+    },
+    {
+      "name": "sci-agents-earth-environment",
+      "description": "Expert-thinking subagents for earth, environmental, ocean, and atmospheric science: geology, geophysics, climate, oceanography, hydrology, remote sensing, and sustainability.",
+      "source": "./plugins/sci-agents-earth-environment",
+      "category": "earth-science"
+    },
+    {
+      "name": "sci-agents-engineering",
+      "description": "Expert-thinking subagents for mechanical, civil, chemical, aerospace, and process engineering: fluid dynamics, structures, manufacturing, thermodynamics, and reliability.",
+      "source": "./plugins/sci-agents-engineering",
+      "category": "engineering"
+    },
+    {
+      "name": "sci-agents-electrical-computer-hw",
+      "description": "Expert-thinking subagents for electrical, electronics, and computer-hardware engineering: power, RF/photonics, semiconductors, embedded/control systems, signals, and robotics.",
+      "source": "./plugins/sci-agents-electrical-computer-hw",
+      "category": "engineering"
+    },
+    {
+      "name": "sci-agents-cs-ai-data",
+      "description": "Expert-thinking subagents for computer science, AI, and data: machine learning, systems, theory, security, NLP, computer vision, and computational/cognitive science.",
+      "source": "./plugins/sci-agents-cs-ai-data",
+      "category": "ml"
+    },
+    {
+      "name": "sci-agents-math-stats-or",
+      "description": "Expert-thinking subagents for mathematics, statistics, and operations research: pure/applied math, probability, Bayesian/causal inference, optimization, and numerical analysis.",
+      "source": "./plugins/sci-agents-math-stats-or",
+      "category": "methodology"
+    },
+    {
+      "name": "sci-agents-agri-food-vet",
+      "description": "Expert-thinking subagents for agriculture, food, and veterinary science: agronomy, soil science, crop/animal science, food science, aquaculture, and veterinary medicine.",
+      "source": "./plugins/sci-agents-agri-food-vet",
+      "category": "agriculture"
+    },
+    {
       "name": "claude-scientific-writer",
       "description": "K-Dense's scientific writing toolkit: 23 skills (papers, grants, posters, clinical reports, paper-2-web) plus a /scientific-writer-init command. NOTE: 22 of these 23 skills also appear in sci-* plugins; only paper-2-web is unique to the writer. To avoid duplicate skills, install EITHER claude-scientific-writer OR the relevant sci-* plugins, not both.",
       "source": "./plugins/claude-scientific-writer",
