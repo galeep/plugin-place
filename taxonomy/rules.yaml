@@ -1,0 +1,79 @@
+# Seed rules for scripts/seed_assignments.py. NOT read by the build (render.py
+# reads the locked taxonomy/{skills,agents}.yaml tables only).
+#
+# Each section: ordered `rules` (first regex match wins, matched against the
+# lowercased "slug profession work_mode" haystack) plus an `overrides` map
+# (slug -> plugin) that beats the rules. Tune here, regenerate, review, lock.
+
+agents:
+  rules:
+    # ---- medicine: organ/disease-specialty clinicians (before the broader
+    #      clinical/population bucket so e.g. cardiologist -> specialties) ----
+    - domain: sci-agents-medical-specialties
+      pattern: "surgeon|oncolog|cardiolog|radiolog|patholog|anesthesi|dermatolog|neurolog(?!inguist)|hematolog|hepatolog|nephrolog|endocrinolog|ophthalmolog|otolaryngolog|urolog|gastroenterolog|rheumatolog|pulmonolog|psychiatr|immunotherapy|gene-therapy|nuclear-medicine|medical-physic|radiation-oncology|emergency-medicine|critical-care|palliative|rehabilitation|anatomist|audiolog|dentist|exercise-physiolog|sports-scien|gerontolog|sleep-scientist|regenerative-medicine|reproductive-biolog|embryolog|vaccinolog|infectious-disease|toxicolog|pharmacolog|pharmacokinet|pharmaceutical|medical-genetic|physician-scientist|comparative-medicine"
+    # ---- clinical / population / translational / health-systems ----
+    - domain: sci-agents-clinical
+      pattern: "clinical|physician|epidemiolog|pharmacovigilance|regulatory-affairs|clinical-trial|genetic-counsel|public-health|global-health|health-econ|health-inform|translational|precision-medicine|occupational-health|environmental-health-scientist|nutrition-scien"
+    # ---- molecular & cell biology, genetics, omics, micro/immuno/neuro-cell --
+    - domain: sci-agents-molecular-cell-biology
+      pattern: "molecular-biolog|cell-biolog|cell-signaling|cellular-neuro|molecular-neuro|biochem|biophysic|structural-biolog|cryo-em|systems-biolog|synthetic-biolog|quantitative-biolog|computational-biolog|genetic|genomic|epigenetic|chromatin|rna-biolog|gene|cytogen|enzymolog|glycobiolog|membrane-biophys|proteomic|metabolomic|single-cell|stem-cell|organoid|developmental-biolog|microbiolog|virolog|bacteriolog|mycolog(?!.*medical)|phage|immunolog|immunogen|microbiome|antimicrobial|fermentation-scien|industrial-microbiolog|bioprocess|microbial-physiolog|chemical-biolog|cancer-biolog"
+    # ---- organismal, ecological, environmental-life, evolutionary ----
+    - domain: sci-agents-organismal-eco-biology
+      pattern: "ecolog|ecotoxicolog|conservation|restoration|wetland|wildlife|botan|zoolog|entomolog|ornitholog|herpetolog|ichthyolog|mammalog|primatolog|protistolog|parasitolog|etholog|behavioral-ecolog|taxonom|phylogen|evolutionary|population-genet|molecular-ecolog|comparative-physiolog|physiolog|anatomist|histolog|chronobiolog|biogeograph|marine-biolog|fisheries|extremophile|astrobiolog|biogeochem|geobiolog"
+    # ---- agriculture, food, veterinary, soil-agronomy, animal science ----
+    - domain: sci-agents-agri-food-vet
+      pattern: "agronom|agricultur|agroecolog|crop|soil-fertil|soil-ecolog|soil-scien|pedolog|horticultur|viticultur|enolog|plant-breed|plant-patholog|plant-physiolog|weed-|precision-agri|food-|flavor|dairy|poultry|animal-|aquacultur|veterinar|forestry"
+    # ---- chemistry ----
+    - domain: sci-agents-chemistry
+      pattern: "chemist|electrochem|photochem|radiochem|colloid|supramolecular|organometallic|natural-products|catalysis|green-chem|forensic-chem|petrochem|process-chem|crystallograph|crystal-growth|mass-spectrom|spectroscop|metrolog"
+    # ---- materials & nano ----
+    - domain: sci-agents-materials-nano
+      pattern: "materials|metallurg|ceramic|composite|corrosion|nanomaterial|nanotechnolog|nanophysic|thin-film|tribolog|biomaterial|polymer|energy-storage|battery|photovoltaic|solar-cell|superconduct|spintronic|semiconductor-material"
+    # ---- electrical / electronics / computer-hardware / control / signals ----
+    - domain: sci-agents-electrical-computer-hw
+      pattern: "electrical-engineer|electronics-engineer|electric-machines|power-electronics|power-grid|power-systems|electromagnetics|antenna|rf-microwave|photonics-engineer|optoelectronics|microelectronics|semiconductor-device|integrated-circuit|vlsi|fpga|embedded-systems|edge-embedded|computer-hardware|computer-architecture|mems|sensor-engineer|instrumentation|signal-processing|control-systems|mechatronic|robotic|telecommunications|communications-engineer|network-engineer|brain-computer-interface|neuroengineer"
+    # ---- physics (non-astro) ----
+    - domain: sci-agents-physics
+      pattern: "physicist|quantum|optic|photonic|laser|plasma|fusion|accelerator|particle|nuclear-physic|condensed-matter|soft-matter|statistical-physic|atomic-molecular|low-temperature|surface-physic|vacuum-science|x-ray-synchrotron|gravitational-physic|biophysical-chem|surface-chem"
+    # ---- astronomy / space / planetary ----
+    - domain: sci-agents-astronomy-space
+      pattern: "astronom|astrophys|astrostatis|cosmolog|cosmochem|exoplanet|stellar|galactic|gravitational-wave|heliophysic|helio|planetary|astrodynamic|astronautic|aeronom|space-weather|astrochemist|astroparticle|radio-astronom|observational-astronom|high-energy-astrophys|astronomical-instrument"
+    # ---- earth / geo / environment ----
+    - domain: sci-agents-earth-environment
+      pattern: "geolog|geophysic|geochem|geodes|geomorph|geomagnet|geodynam|sediment|stratigraph|petrolog|mineralog|volcanolog|seismolog|hydrogeolog|glaciolog|tectonic|isotope-geochem|economic-geolog|mining-geolog|petroleum-geolog|marine-geolog|geological-ocean|environmental-scien|environmental-chem|environmental-engineer|environmental-microbiolog|sustainab|industrial-ecolog|life-cycle|pollution|remote-sensing|geographic-info|gis|geotechnical|quaternary|paleo|geobiolog?|conservation-scien"
+    # ---- ocean / atmosphere / climate / water ----
+    - domain: sci-agents-ocean-atmos-climate
+      pattern: "oceanograph|ocean|climat|meteorolog|atmospher|air-quality|carbon-cycle|hydrolog|limnolog|water-resources|cryo(?!-em)|glaci"
+    # ---- CS / AI / data / theory ----
+    - domain: sci-agents-cs-ai-data
+      pattern: "computer-scien|computer-vision|computer-graphics|computer-security|computational-scien|computational-social|computational-physic|computational-chem|computational-neuro|computational-lingu|machine-learning|deep-learning|reinforcement-learning|ai-researcher|data-scien|data-engineer|database-systems|distributed-systems|formal-methods|programming-languages|knowledge-representation|information-retrieval|natural-language|cryptograph|high-performance-computing|mlops|research-software|network-scien|algorithms-researcher|theoretical-computer|human-computer|cognitive-scien|cognitive-neuro|psycholingu|neuroinformatic|connectom|neuroimaging|bioinformatic"
+    # ---- math / statistics / OR ----
+    - domain: sci-agents-math-stats-or
+      pattern: "mathematic|mathematical|statistic|biostatis|probabilist|number-theor|topolog|geometer|algebra|combinatorial|logician|numerical-analyst|optimization|operations-research|dynamical-systems|nonlinear-dynamics|causal-inference|actuarial|bayesian"
+    # ---- engineering (mech / civil / chem-eng / aero / general) ----
+    - domain: sci-agents-engineering
+      pattern: "engineer|aerodynam|aeronaut|aerospace|naval-architect|finite-element|fluid-dynamic|fluid-mechanic|combustion|propulsion|turbomachin|reliability|quality-six-sigma|reaction-engineering|separation-process|precision-engineering|industrial-engineer|manufacturing|additive-manufactur|welding|surface-engineering|tunnel|bridge|earthquake|foundation|pavement|traffic|transportation|urban-infrastructure|construction|coastal|hydraulic|heat-transfer|thermodynamics|hvac|fire-protection|building-science|vibration|biomedical-engineer|tissue-engineer|bioprocess-engineer|biosystems|agricultural-engineer|nuclear-engineer|renewable-energy|energy-systems"
+  overrides:
+    # 8 brainstorming stragglers + a few that the ordered rules would mis-route
+    algorithms-researcher: sci-agents-cs-ai-data
+    antimicrobial-resistance-scientist: sci-agents-molecular-cell-biology
+    astrodynamicist: sci-agents-astronomy-space
+    geotechnical-scientist: sci-agents-earth-environment
+    microbiome-scientist: sci-agents-molecular-cell-biology
+    polymer-scientist: sci-agents-materials-nano
+    renewable-energy-scientist: sci-agents-engineering
+    urban-infrastructure-planner: sci-agents-engineering
+
+skills:
+  # The 135 already-grouped skills are pre-seeded from the current plugins.yaml
+  # inline lists. These rules only need to place the 8 orphan/new skills.
+  rules:
+    - domain: sci-bioinformatics-genomics
+      pattern: "rnaseq|pathway-enrichment|nextflow|pacsomatic"
+    - domain: sci-medical-imaging
+      pattern: "^bids$"
+    - domain: sci-scientific-communication
+      pattern: "exa-search|liteparse"
+    - domain: sci-research-methodology
+      pattern: "autoskill"
+  overrides: {}
