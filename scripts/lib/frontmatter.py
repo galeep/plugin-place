@@ -78,6 +78,8 @@ def inject_author(text, author):
       (`author` is the precomputed vendor string and already ends in the mark.)
     - Existing author without the mark (e.g. upstream `author: "K-Dense, Inc."`):
       append ' <VENDOR_MARK>' to its value, preserving the upstream text.
+    - Existing but blank/valueless `author:` line: set it to `author` in place
+      (no duplicate key).
     - Existing author already carrying the mark: unchanged (idempotent rebuilds).
 
     Raises ValueError if there is no frontmatter to edit.
@@ -86,20 +88,22 @@ def inject_author(text, author):
     if head is None:
         raise ValueError("inject_author: no frontmatter present")
 
-    existing = get_field(head, "author")
-    if existing is not None:
+    lines = head.splitlines()
+    # Detect a top-level `author:` LINE (present with any value, or none) so a
+    # valueless `author:` is updated in place rather than duplicated. `^author:`
+    # excludes nested `  author:` and `skill-author:`.
+    idx = next((i for i, l in enumerate(lines) if re.match(r"^author:", l)), None)
+    if idx is not None:
+        existing = (get_field(head, "author") or "").strip()
         if VENDOR_MARK in existing:
             return text
-        marked = f"author: {yaml_dq(existing + ' ' + VENDOR_MARK)}"
-        out = [
-            marked if re.match(r"^author:[ \t]*\S", line) else line
-            for line in head.splitlines()
-        ]
-        return "---\n" + "\n".join(out) + "\n---\n" + body
+        new_val = f"{existing} {VENDOR_MARK}" if existing else author
+        lines[idx] = f"author: {yaml_dq(new_val)}"
+        return "---\n" + "\n".join(lines) + "\n---\n" + body
 
     author_line = f"author: {yaml_dq(author)}"
     out, inserted = [], False
-    for line in head.splitlines():
+    for line in lines:
         out.append(line)
         if not inserted and re.match(r"^name:[ \t]*", line):
             out.append(author_line)

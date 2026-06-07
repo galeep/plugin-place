@@ -41,9 +41,12 @@ jobs:
 
       - name: Assert the committed build tree matches a fresh build
         run: |
-          if ! git diff --quiet; then
+          # Stage everything first so NEW untracked files (e.g. an upstream that
+          # added a skill/agent) are caught too — `git diff` alone ignores them.
+          git add -A
+          if ! git diff --cached --quiet; then
             echo "::error::build output differs from the committed tree; run scripts/build.sh and commit the result"
-            git --no-pager diff --stat
+            git --no-pager diff --cached --stat
             exit 1
           fi
 

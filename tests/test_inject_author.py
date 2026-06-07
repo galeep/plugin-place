@@ -63,3 +63,18 @@ def test_inject_idempotent_on_marked_existing_author():
     assert once == twice
     head, _ = fm.split_frontmatter(twice)
     assert sum(1 for l in head.splitlines() if l.startswith("author:")) == 1
+
+VALUELESS_AUTHOR = "---\nname: x\nauthor:\ndescription: y.\n---\nbody\n"
+BLANK_AUTHOR = '---\nname: x\nauthor: "   "\ndescription: y.\n---\nbody\n'
+
+def test_inject_valueless_author_set_in_place_not_duplicated():
+    out = fm.inject_author(VALUELESS_AUTHOR, "Origin via galeep")
+    head, _ = fm.split_frontmatter(out)
+    assert fm.get_field(head, "author") == "Origin via galeep"
+    assert sum(1 for l in head.splitlines() if l.startswith("author:")) == 1
+
+def test_inject_blank_author_set_in_place_not_duplicated():
+    out = fm.inject_author(BLANK_AUTHOR, "Origin via galeep")
+    head, _ = fm.split_frontmatter(out)
+    assert fm.get_field(head, "author") == "Origin via galeep"
+    assert sum(1 for l in head.splitlines() if l.startswith("author:")) == 1
