@@ -46,21 +46,21 @@ Four upstreams are vendored as pinned git submodules. The exact pinned versions
 live in [`plugins.yaml`](plugins.yaml) and [`.claude-plugin/provenance.json`](.claude-plugin/provenance.json),
 so they are recorded in exactly one place rather than copied into prose here.
 
-- **[K-Dense-AI/scientific-agent-skills](https://github.com/K-Dense-AI/scientific-agent-skills)**
-  — scientific tool and library skills, split into domain plugins named
+- **[K-Dense-AI/scientific-agent-skills](https://github.com/K-Dense-AI/scientific-agent-skills)**:
+  scientific tool and library skills, split into domain plugins named
   `sci-<domain>` (for example `sci-bioinformatics-genomics`,
   `sci-machine-learning`), plus general-purpose document tools in
   `kdense-document-skills`.
-- **[K-Dense-AI/scientific-agents](https://github.com/K-Dense-AI/scientific-agents)**
-  — expert "operating mind" profiles, converted into Claude Code subagents and
+- **[K-Dense-AI/scientific-agents](https://github.com/K-Dense-AI/scientific-agents)**:
+  expert "operating mind" profiles, converted into Claude Code subagents and
   grouped by domain as `sci-agents-<domain>` (for example `sci-agents-chemistry`,
   `sci-agents-clinical`). Each subagent reasons in the voice of a senior
   practitioner in its field.
-- **[K-Dense-AI/claude-scientific-writer](https://github.com/K-Dense-AI/claude-scientific-writer)**
-  — the full writer plugin, including its `/scientific-writer-init` command,
+- **[K-Dense-AI/claude-scientific-writer](https://github.com/K-Dense-AI/claude-scientific-writer)**:
+  the full writer plugin, including its `/scientific-writer-init` command,
   vendored intact as `claude-scientific-writer`.
-- **[JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman)**
-  — a compressed-communication mode, vendored as `caveman` with a small
+- **[JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman)**:
+  a compressed-communication mode, vendored as `caveman` with a small
   downstream patch (see [How it's built](#how-its-built)).
 
 Naming convention: skill plugins are `sci-<domain>`, agent plugins are
@@ -99,12 +99,12 @@ so changes belong in `plugins.yaml`, the `taxonomy/` tables, or `patches/`.
 
 Plugin kinds:
 
-- **built** — copies a chosen set of skills from an upstream submodule into a
+- **built**: copies a chosen set of skills from an upstream submodule into a
   domain plugin.
-- **agents** — converts upstream `AGENTS.md` profiles into Claude Code subagents.
-- **vendored** — copies an entire upstream plugin intact (skills, commands,
+- **agents**: converts upstream `AGENTS.md` profiles into Claude Code subagents.
+- **vendored**: copies an entire upstream plugin intact (skills, commands,
   agents, hooks).
-- **vendored-whole** — like `vendored`, but preserves the upstream's own
+- **vendored-whole**: like `vendored`, but preserves the upstream's own
   `plugin.json` so its hooks and wiring survive (used for `caveman`).
 
 A few properties the build enforces:
@@ -149,10 +149,14 @@ cd ../.. && bash scripts/build.sh
 The plugins distributed here are derivative works of their upstreams' content,
 vendored under the upstreams' own licenses. Each `vendor/*/` submodule preserves
 the upstream `LICENSE`, and every vendored skill and agent records its original
-author in frontmatter. All credit for the underlying skills and agents goes to
-their original authors: [K-Dense Inc.](https://k-dense.ai) for the scientific
-collections and the writer, and [JuliusBrussee](https://github.com/JuliusBrussee/caveman)
-for caveman.
+author in its frontmatter, which is the authoritative credit record.
+
+All credit for the underlying skills and agents goes to their original authors,
+and they are many. Beyond the upstream organizations, the corpus includes work
+by independent authors and labs such as Harvard MIMS (PrimeKG), Exa, and many
+individual contributors. This repository is only the packaging: the vendoring,
+taxonomy, and marketplace wrapper. It claims no authorship of the underlying
+skills or agents, and the `via galeep` mark denotes the vendor, not the author.
 
 This repository's own scaffolding (build scripts, manifest, taxonomy, docs) is
 MIT-licensed; see [`LICENSE`](LICENSE).
