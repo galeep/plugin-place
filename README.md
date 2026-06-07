@@ -1,8 +1,24 @@
 # plugin-place
 
-A curated [Claude Code](https://docs.claude.com/en/docs/claude-code) plugin
-marketplace. Currently hosts K-Dense AI's scientific tooling split into
-focused, individually-installable plugins so you only load what you need.
+A personal, curated [Claude Code](https://docs.claude.com/en/docs/claude-code)
+plugin marketplace. It vendors a handful of upstream skill and agent collections
+at pinned versions, groups them into focused plugins you can install one at a
+time, and applies a few downstream fixes where the upstream behavior did not fit.
+
+## Why this exists
+
+The upstream collections this builds on ship as bare skills and agent profiles,
+with no marketplace wrapper to install or update them as a unit. Managing loose
+skills by hand (copying directories, pinning versions, re-checking what changed
+on each release) is tedious and easy to get wrong. plugin-place is the wrapper I
+wanted: it vendors those collections at pinned versions, regenerates everything
+reproducibly from a single manifest, and packages it so installing a domain is
+one command instead of a directory copy.
+
+It is a personal toolkit kept in the open, because the friction that motivated it
+is not unique to me. If you hit the same rough edges, you are welcome to use it.
+Nothing here is a substitute for the upstreams; all credit for the underlying
+skills and agents goes to their original authors (see Attribution below).
 
 ## Quick start
 
@@ -10,112 +26,133 @@ focused, individually-installable plugins so you only load what you need.
 # Add the marketplace (one time)
 claude plugin marketplace add galeep/plugin-place
 
-# List what's available
+# Browse the current, authoritative list of plugins
 claude plugin search @plugin-place
 
 # Install whichever pieces you want
 claude plugin install sci-bioinformatics-genomics@plugin-place
-claude plugin install sci-machine-learning@plugin-place
-claude plugin install kdense-document-skills@plugin-place
+claude plugin install sci-agents-chemistry@plugin-place
 ```
 
-## What's in here
+The live inventory lives in [`.claude-plugin/marketplace.json`](.claude-plugin/marketplace.json)
+and in `claude plugin search`. This README deliberately does not list plugin
+counts or per-plugin rosters: those are generated from `plugins.yaml` and would
+fall out of date the moment an upstream changed. Check the marketplace for what
+is actually there right now.
 
-19 plugins, 135 skills, all sourced from [K-Dense AI](https://github.com/K-Dense-AI)
-and licensed MIT. Two upstream repos vendor in, pinned to release tags:
+## What's inside
 
-- [K-Dense-AI/scientific-agent-skills](https://github.com/K-Dense-AI/scientific-agent-skills)
-  @ `v2.38.0` — 135 scientific skills, split here into 17 domain plugins
-  plus the general-purpose `kdense-document-skills` plugin
-- [K-Dense-AI/claude-scientific-writer](https://github.com/K-Dense-AI/claude-scientific-writer)
-  @ `v2.13.0` — full writer plugin with a `/scientific-writer-init` command
+Four upstreams are vendored as pinned git submodules. The exact pinned versions
+live in [`plugins.yaml`](plugins.yaml) and [`.claude-plugin/provenance.json`](.claude-plugin/provenance.json),
+so they are recorded in exactly one place rather than copied into prose here.
 
-### The plugins
+- **[K-Dense-AI/scientific-agent-skills](https://github.com/K-Dense-AI/scientific-agent-skills)**
+  — scientific tool and library skills, split into domain plugins named
+  `sci-<domain>` (for example `sci-bioinformatics-genomics`,
+  `sci-machine-learning`), plus general-purpose document tools in
+  `kdense-document-skills`.
+- **[K-Dense-AI/scientific-agents](https://github.com/K-Dense-AI/scientific-agents)**
+  — expert "operating mind" profiles, converted into Claude Code subagents and
+  grouped by domain as `sci-agents-<domain>` (for example `sci-agents-chemistry`,
+  `sci-agents-clinical`). Each subagent reasons in the voice of a senior
+  practitioner in its field.
+- **[K-Dense-AI/claude-scientific-writer](https://github.com/K-Dense-AI/claude-scientific-writer)**
+  — the full writer plugin, including its `/scientific-writer-init` command,
+  vendored intact as `claude-scientific-writer`.
+- **[JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman)**
+  — a compressed-communication mode, vendored as `caveman` with a small
+  downstream patch (see [How it's built](#how-its-built)).
 
-| Plugin | Skills | What it covers |
-| --- | --- | --- |
-| `sci-bioinformatics-genomics` | 20 | Sequence analysis, scRNA-seq, gene regulatory networks, variants, phylogenetics, biomedical DBs |
-| `sci-cheminformatics-drug-discovery` | 9 | Cheminformatics, molecular ML, docking, medicinal chemistry |
-| `sci-proteomics-mass-spec` | 3 | LC-MS/MS, spectral matching, glycoengineering |
-| `sci-clinical-research` | 4 | CDS, clinical/case/trial reports, treatment plans, ISO 13485 |
-| `sci-healthcare-ai` | 2 | PyHealth, NeuroKit2 biosignal processing |
-| `sci-medical-imaging` | 4 | DICOM, WSI, computational pathology, NCI Imaging Data Commons |
-| `sci-machine-learning` | 16 | scikit-learn, Lightning, transformers, RL, time series, GNNs, Bayesian, SHAP, GPU/compute helpers |
-| `sci-materials-chemistry` | 2 | pymatgen, COBRApy |
-| `sci-physics-astronomy` | 6 | astropy, sympy, qutip, qiskit, cirq, pennylane |
-| `sci-engineering-simulation` | 4 | SimPy, pymoo, CFD, molecular dynamics |
-| `sci-data-analysis-viz` | 14 | Stats, EDA, networks, survival, plotting, big-data dataframes, MATLAB, US fiscal data |
-| `sci-geospatial` | 2 | GIS, remote sensing, earth-observation ML |
-| `sci-lab-automation` | 11 | Benchling, DNAnexus, LatchBio, OMERO, Opentrons, protocols.io, PyLabRobot, flow cytometry, Neuropixels |
-| `sci-scientific-communication` | 22 | Lit review, peer review, writing, citations, posters, slides, schematics, infographics, academic web search |
-| `sci-multi-omics` | 3 | DepMap, PrimeKG, scvi-tools |
-| `sci-protein-engineering` | 2 | ESM, Adaptyv Bio Foundry |
-| `sci-research-methodology` | 7 | Hypothesis generation, grant writing, brainstorming, critical thinking, scenario analysis |
-| `kdense-document-skills` | 4 | General-purpose .docx, .pdf, .pptx, .xlsx tools (useful with any plugin) |
-| `claude-scientific-writer` | 23 | K-Dense's full writer plugin including the `/scientific-writer-init` command |
+Naming convention: skill plugins are `sci-<domain>`, agent plugins are
+`sci-agents-<domain>`, and the two standalone plugins keep their upstream names.
+For the full current set, query the marketplace.
 
-## Overlap warning: writer vs. sci-* plugins
+## Overlap: writer vs. sci-* plugins
 
-The `claude-scientific-writer` plugin and the `sci-*` plugins share most of
-their skills (K-Dense maintains the same skill code in both upstreams).
-Specifically:
+`claude-scientific-writer` and the `sci-*` skill plugins share most of their
+skills, because K-Dense maintains the same skill code in both upstreams. The
+writer's unique contribution is the `/scientific-writer-init` command.
 
-- 23 of the writer's 23 skills also appear in one of the `sci-*` plugins
-  (mostly `sci-scientific-communication`, plus `sci-clinical-research` and
-  `sci-research-methodology`)
-- The writer's unique contribution is the `/scientific-writer-init` slash
-  command (which the bare skills lack)
+Pick one approach:
 
-**Pick one approach**:
+- **Install the writer** for the full writing and clinical skill set plus the
+  init command, in a single plugin.
+- **Install individual `sci-*` plugins** for exactly the domain slices you want,
+  with granular enable and disable.
 
-- **Install the writer**: get all the writing/clinical skills plus the
-  init command, in a single plugin
-- **Install individual `sci-*` plugins**: get exactly the domain slices
-  you want, granular enable/disable
+Installing both produces duplicate skill names, which Claude Code's skill router
+does not handle well. Choose one.
 
-Installing both will give you duplicate skill names, which is unsupported
-and will confuse Claude Code's skill router.
+## How it's built
 
-## How this is built
-
-`plugins.yaml` is the source of truth. Everything else is generated:
+[`plugins.yaml`](plugins.yaml) is the source of truth. Everything under
+`plugins/`, the per-plugin manifests, and `.claude-plugin/marketplace.json` are
+generated:
 
 ```sh
 git submodule update --init --recursive
 bash scripts/build.sh
 ```
 
-This regenerates `plugins/*` and `.claude-plugin/marketplace.json` from
-the YAML and the pinned upstream submodules. The build is idempotent —
-edits inside `plugins/*` will be overwritten.
+The build is idempotent. Edits inside `plugins/` are overwritten on the next run,
+so changes belong in `plugins.yaml`, the `taxonomy/` tables, or `patches/`.
 
-The `built` plugin kind copies a chosen subset of skills from an upstream
-submodule. The `vendored` plugin kind copies an entire upstream plugin
-intact (skills, commands, agents, hooks) and generates a `plugin.json`
-from its upstream marketplace metadata. A `local` kind is reserved for
-plugins authored directly in this repo.
+Plugin kinds:
 
-To add a new plugin, edit `plugins.yaml` and rerun `scripts/build.sh`.
+- **built** — copies a chosen set of skills from an upstream submodule into a
+  domain plugin.
+- **agents** — converts upstream `AGENTS.md` profiles into Claude Code subagents.
+- **vendored** — copies an entire upstream plugin intact (skills, commands,
+  agents, hooks).
+- **vendored-whole** — like `vendored`, but preserves the upstream's own
+  `plugin.json` so its hooks and wiring survive (used for `caveman`).
+
+A few properties the build enforces:
+
+- **Coverage gate.** Membership for skills and agents is recorded in committed
+  assignment tables under [`taxonomy/`](taxonomy/). The build fails if any
+  upstream skill or agent is unassigned, mapped to a plugin that does not exist,
+  or left as a stale entry. Nothing is silently dropped.
+- **Attribution.** Every vendored skill and agent carries an `author` line in
+  its frontmatter crediting the original author with a `via galeep` vendor mark
+  (for example `author: "K-Dense Inc. via galeep"`). Unknown origins are never
+  fabricated.
+- **Per-skill licenses.** Each skill's real license is carried through; a
+  plugin's license is the single value when its skills agree, or
+  `mixed (see individual skills)` otherwise, with per-skill licenses listed in
+  the plugin README.
+- **Downstream patches.** Edits to vendored content live in [`patches/`](patches/)
+  as exact find-and-replace anchors applied on every build. A patch whose anchor
+  no longer matches fails the build, so upstream drift is surfaced rather than
+  silently absorbed.
+
+To add or change a plugin, edit `plugins.yaml` (and the `taxonomy/` tables for
+membership), then rerun `scripts/build.sh`.
 
 ## Staying in sync with upstream
 
-A GitHub Actions workflow runs daily, checking each upstream submodule
-for new release tags. When one is found, it bumps the submodule pointer,
-rebuilds the plugins, and opens a pull request for review. Merging the PR
-publishes the update.
+A daily GitHub Actions workflow checks each tag-pinned upstream for a newer
+release. When it finds one, it bumps the submodule, rebuilds, and opens a pull
+request for review. SHA-pinned upstreams (the ones without release tags) are
+bumped manually.
 
-Manual sync:
+Manual sync for a SHA-pinned upstream:
 
 ```sh
-cd vendor/scientific-agent-skills && git fetch --tags && git checkout vX.Y.Z
-cd ../claude-scientific-writer && git fetch --tags && git checkout vX.Y.Z
+cd vendor/<submodule> && git fetch && git checkout <sha>
 cd ../.. && bash scripts/build.sh
+# then update the pin in plugins.yaml
 ```
 
-## License
+## Attribution and license
 
-The plugins distributed here are derivative works of K-Dense AI's MIT-licensed
-upstream content. K-Dense's `LICENSE.md` files are preserved in each
-`vendor/*/` submodule. This repository's own scaffolding (build scripts, YAML,
-docs) is MIT-licensed; see `LICENSE`. All credit for the scientific skills
-goes to [K-Dense Inc.](https://k-dense.ai).
+The plugins distributed here are derivative works of their upstreams' content,
+vendored under the upstreams' own licenses. Each `vendor/*/` submodule preserves
+the upstream `LICENSE`, and every vendored skill and agent records its original
+author in frontmatter. All credit for the underlying skills and agents goes to
+their original authors: [K-Dense Inc.](https://k-dense.ai) for the scientific
+collections and the writer, and [JuliusBrussee](https://github.com/JuliusBrussee/caveman)
+for caveman.
+
+This repository's own scaffolding (build scripts, manifest, taxonomy, docs) is
+MIT-licensed; see [`LICENSE`](LICENSE).
