@@ -1,0 +1,14 @@
+{
+  "name": "sci-agents-cs-ai-data",
+  "version": "0.1.0",
+  "description": "Expert-thinking subagents for computer science, AI, and data: machine learning, systems, theory, security, NLP, computer vision, and computational/cognitive science.",
+  "author": {
+    "name": "K-Dense, Inc. via galeep"
+  },
+  "homepage": "https://github.com/K-Dense-AI/scientific-agents",
+  "license": "MIT",
+  "keywords": [
+    "scientific-agents",
+    "scientific-agents"
+  ]
+}

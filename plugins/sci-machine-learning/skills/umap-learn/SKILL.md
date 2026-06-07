@@ -1,5 +1,6 @@
 ---
 name: umap-learn
+author: "K-Dense Inc. via galeep"
 description: UMAP dimensionality reduction. Fast nonlinear manifold learning for 2D/3D visualization, clustering preprocessing (HDBSCAN), supervised/parametric UMAP, for high-dimensional data.
 license: BSD-3-Clause license
 metadata:

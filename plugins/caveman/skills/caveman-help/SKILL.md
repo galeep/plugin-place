@@ -1,5 +1,6 @@
 ---
 name: caveman-help
+author: "Julius Brussee via galeep"
 description: >
   Quick-reference card for all caveman modes, skills, and commands.
   One-shot display, not a persistent mode. Trigger: /caveman-help,

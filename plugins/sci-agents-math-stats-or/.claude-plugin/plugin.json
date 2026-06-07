@@ -1,0 +1,14 @@
+{
+  "name": "sci-agents-math-stats-or",
+  "version": "0.1.0",
+  "description": "Expert-thinking subagents for mathematics, statistics, and operations research: pure/applied math, probability, Bayesian/causal inference, optimization, and numerical analysis.",
+  "author": {
+    "name": "K-Dense, Inc. via galeep"
+  },
+  "homepage": "https://github.com/K-Dense-AI/scientific-agents",
+  "license": "MIT",
+  "keywords": [
+    "scientific-agents",
+    "scientific-agents"
+  ]
+}

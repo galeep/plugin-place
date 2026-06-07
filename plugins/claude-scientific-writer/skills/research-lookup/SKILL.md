@@ -1,5 +1,6 @@
 ---
 name: research-lookup
+author: "K-Dense Inc. via galeep"
 description: Look up current research information using parallel-cli search (primary, fast web search) or the Parallel Chat API (deep research). Automatically routes queries to the best backend. Use for finding papers, gathering research data, and verifying scientific information.
 allowed-tools: Read Write Edit Bash
 license: MIT license

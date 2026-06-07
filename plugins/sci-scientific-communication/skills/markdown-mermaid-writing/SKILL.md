@@ -1,5 +1,6 @@
 ---
 name: markdown-mermaid-writing
+author: "Clayton Young / Superior Byte Works, LLC (@borealBytes) via galeep"
 description: Comprehensive markdown and Mermaid diagram writing skill. Use when creating any scientific document, report, analysis, or visualization. Establishes text-based diagrams as the default documentation standard with full style guides (markdown + mermaid), 24 diagram type references, and 9 document templates.
 allowed-tools: Read Write Edit Bash
 license: Apache-2.0

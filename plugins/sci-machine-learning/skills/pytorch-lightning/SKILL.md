@@ -1,5 +1,6 @@
 ---
 name: pytorch-lightning
+author: "K-Dense Inc. via galeep"
 description: Deep learning framework (PyTorch Lightning / lightning package). Organize PyTorch code into LightningModules, configure Trainers for multi-GPU/TPU, implement data pipelines, callbacks, logging (W&B, TensorBoard, MLflow), distributed training (DDP, FSDP, DeepSpeed), for scalable neural network training.
 allowed-tools: Read Write Edit Bash
 license: Apache-2.0 license

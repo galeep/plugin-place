@@ -1,0 +1,14 @@
+{
+  "name": "sci-agents-chemistry",
+  "version": "0.1.0",
+  "description": "Expert-thinking subagents for chemistry: organic, inorganic, physical, analytical, electrochemistry, catalysis, spectroscopy, mass spectrometry, and crystallography.",
+  "author": {
+    "name": "K-Dense, Inc. via galeep"
+  },
+  "homepage": "https://github.com/K-Dense-AI/scientific-agents",
+  "license": "MIT",
+  "keywords": [
+    "scientific-agents",
+    "scientific-agents"
+  ]
+}

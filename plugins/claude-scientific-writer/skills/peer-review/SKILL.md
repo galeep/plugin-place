@@ -1,5 +1,6 @@
 ---
 name: peer-review
+author: "K-Dense Inc. via galeep"
 description: "Systematic peer review toolkit. Evaluate methodology, statistics, design, reproducibility, ethics, figure integrity, reporting standards, for manuscript and grant review across disciplines."
 allowed-tools: [Read, Write, Edit, Bash]
 ---

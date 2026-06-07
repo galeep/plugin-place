@@ -1,5 +1,6 @@
 ---
 name: scholar-evaluation
+author: "K-Dense Inc. via galeep"
 description: Systematically evaluate scholarly work using the ScholarEval framework, providing structured assessment across research quality dimensions including problem formulation, methodology, analysis, and writing with quantitative scoring and actionable feedback.
 license: MIT license
 metadata:

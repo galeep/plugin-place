@@ -1,5 +1,6 @@
 ---
 name: transformers
+author: "K-Dense Inc. via galeep"
 description: Hugging Face Transformers for loading Hub models, running pipeline inference, text generation, and Trainer fine-tuning on NLP, vision, audio, and multimodal tasks. Use when working with AutoModel, pipelines, tokenizers, or TrainingArguments—not for general ML outside the Transformers library.
 license: Apache-2.0 license
 compatibility: Requires Python 3.10+, PyTorch 2.4+, and transformers 5.x. Gated or private Hub models need an HF token (hf auth login or HF_TOKEN).

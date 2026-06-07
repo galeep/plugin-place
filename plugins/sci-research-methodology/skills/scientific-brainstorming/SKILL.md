@@ -1,5 +1,6 @@
 ---
 name: scientific-brainstorming
+author: "K-Dense Inc. via galeep"
 description: Creative research ideation and exploration. Use for open-ended brainstorming sessions, exploring interdisciplinary connections, challenging assumptions, or identifying research gaps. Best for early-stage research planning when you do not have specific observations yet. For formulating testable hypotheses from data use hypothesis-generation.
 license: MIT license
 metadata:

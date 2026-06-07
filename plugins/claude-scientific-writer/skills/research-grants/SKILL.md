@@ -1,5 +1,6 @@
 ---
 name: research-grants
+author: "K-Dense Inc. via galeep"
 description: "Write competitive research proposals for NSF, NIH, DOE, and DARPA. Agency-specific formatting, review criteria, budget preparation, broader impacts, significance statements, innovation narratives, and compliance with submission requirements."
 allowed-tools: [Read, Write, Edit, Bash]
 ---

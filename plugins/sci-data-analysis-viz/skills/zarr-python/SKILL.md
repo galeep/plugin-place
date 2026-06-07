@@ -1,5 +1,6 @@
 ---
 name: zarr-python
+author: "K-Dense Inc. via galeep"
 description: Chunked N-D arrays for cloud storage (Zarr-Python 3). Compressed arrays, parallel I/O, S3/GCS via fsspec, NumPy/Dask/Xarray compatible, for large-scale scientific computing pipelines.
 allowed-tools: Read Write Edit Bash
 license: MIT license

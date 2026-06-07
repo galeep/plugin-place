@@ -1,5 +1,6 @@
 ---
 name: pydicom
+author: "K-Dense Inc. via galeep"
 description: Python library for working with DICOM (Digital Imaging and Communications in Medicine) files. Use this skill when reading, writing, or modifying medical imaging data in DICOM format, extracting pixel data from medical images (CT, MRI, X-ray, ultrasound), anonymizing DICOM files, working with DICOM metadata and tags, converting DICOM images to other formats, handling compressed DICOM data, or processing medical imaging datasets. Applies to tasks involving medical image analysis, PACS systems, radiology workflows, and healthcare imaging applications.
 license: https://github.com/pydicom/pydicom/blob/main/LICENSE
 metadata:

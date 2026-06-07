@@ -1,5 +1,6 @@
 ---
 name: cobrapy
+author: "K-Dense Inc. via galeep"
 description: Constraint-based metabolic modeling (COBRA). FBA, FVA, gene knockouts, flux sampling, SBML models, for systems biology and metabolic engineering analysis.
 license: GPL-2.0 license
 allowed-tools: Read Write Edit Bash

@@ -1,5 +1,6 @@
 ---
 name: diffdock
+author: "K-Dense Inc. via galeep"
 description: Diffusion-based molecular docking. Predict protein-ligand binding poses from PDB/SMILES, confidence scores, virtual screening, for structure-based drug design. Not for affinity prediction.
 license: MIT license
 metadata:

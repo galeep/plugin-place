@@ -1,5 +1,6 @@
 ---
 name: medchem
+author: "K-Dense Inc. via galeep"
 description: Medicinal chemistry filters for compound triage. Apply drug-likeness rules (Lipinski, Veber, CNS), structural alert catalogs (PAINS, NIBR, ChEMBL), complexity metrics, and the medchem query language for library filtering.
 license: Apache-2.0 license
 allowed-tools: Read Write Edit Bash

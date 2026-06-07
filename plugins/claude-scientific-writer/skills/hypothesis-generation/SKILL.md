@@ -1,5 +1,6 @@
 ---
 name: hypothesis-generation
+author: "K-Dense Inc. via galeep"
 description: "Generate testable hypotheses. Formulate from observations, design experiments, explore competing explanations, develop predictions, propose mechanisms, for scientific inquiry across domains."
 allowed-tools: [Read, Write, Edit, Bash]
 ---

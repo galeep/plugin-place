@@ -1,18 +1,24 @@
 {
   "scientific-agent-skills": {
-    "pinned_tag": "v2.45.0",
-    "sha": "d9a978ab9c6a6bf4c843030467054d24ef52e742",
-    "describe": "v2.45.0",
+    "version": "b2a969eb56d92c454e682138cd93587d77b64b11",
+    "sha": "b2a969eb56d92c454e682138cd93587d77b64b11",
+    "describe": "b2a969eb56d9",
     "repo": "K-Dense-AI/scientific-agent-skills"
   },
+  "scientific-agents": {
+    "version": "896ed6ed1e1a6686572db06ca59fd1c1b0055ca7",
+    "sha": "896ed6ed1e1a6686572db06ca59fd1c1b0055ca7",
+    "describe": "896ed6ed1e1a",
+    "repo": "K-Dense-AI/scientific-agents"
+  },
   "claude-scientific-writer": {
-    "pinned_tag": "v2.13.0",
+    "version": "v2.13.0",
     "sha": "5bf6b597e2aff21de4607cf4fe9a7b46ecbd7f04",
     "describe": "v2.13.0",
     "repo": "K-Dense-AI/claude-scientific-writer"
   },
   "caveman": {
-    "pinned_tag": "v1.8.2",
+    "version": "v1.8.2",
     "sha": "63a91ecadbf4c4719a4602a5abb00883f9966034",
     "describe": "v1.8.2",
     "repo": "JuliusBrussee/caveman"

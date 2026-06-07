@@ -1,5 +1,6 @@
 ---
 name: cavecrew
+author: "Julius Brussee via galeep"
 description: >
   Decision guide for delegating to caveman-style subagents. Tells the main
   thread WHEN to spawn `cavecrew-investigator` (locate code), `cavecrew-builder`
