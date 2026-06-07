@@ -23,8 +23,15 @@ upstreams:
   scientific-agent-skills:
     submodule: vendor/scientific-agent-skills
     skills_root: skills
-    pinned_tag: v2.45.0
+    pinned_sha: b2a969eb56d92c454e682138cd93587d77b64b11
     upstream_repo: K-Dense-AI/scientific-agent-skills
+    license: MIT   # fallback only; real license resolved per-skill
+  scientific-agents:
+    submodule: vendor/scientific-agents
+    agents_root: scientific-agents
+    catalog: catalog.json
+    pinned_sha: 896ed6ed1e1a6686572db06ca59fd1c1b0055ca7
+    upstream_repo: K-Dense-AI/scientific-agents
     license: MIT
   claude-scientific-writer:
     submodule: vendor/claude-scientific-writer
