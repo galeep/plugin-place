@@ -38,12 +38,11 @@ agents:
     # ---- astronomy / space / planetary ----
     - domain: sci-agents-astronomy-space
       pattern: "astronom|astrophys|astrostatis|cosmolog|cosmochem|exoplanet|stellar|galactic|gravitational-wave|heliophysic|helio|planetary|astrodynamic|astronautic|aeronom|space-weather|astrochemist|astroparticle|radio-astronom|observational-astronom|high-energy-astrophys|astronomical-instrument"
-    # ---- earth / geo / environment ----
+    # ---- earth / geo / environment / ocean / atmosphere / climate / water ----
+    #      (ocean+atmos+climate folded in here per Task 11 review: too few to
+    #       warrant a standalone plugin)
     - domain: sci-agents-earth-environment
-      pattern: "geolog|geophysic|geochem|geodes|geomorph|geomagnet|geodynam|sediment|stratigraph|petrolog|mineralog|volcanolog|seismolog|hydrogeolog|glaciolog|tectonic|isotope-geochem|economic-geolog|mining-geolog|petroleum-geolog|marine-geolog|geological-ocean|environmental-scien|environmental-chem|environmental-engineer|environmental-microbiolog|sustainab|industrial-ecolog|life-cycle|pollution|remote-sensing|geographic-info|gis|geotechnical|quaternary|paleo|geobiolog?|conservation-scien"
-    # ---- ocean / atmosphere / climate / water ----
-    - domain: sci-agents-ocean-atmos-climate
-      pattern: "oceanograph|ocean|climat|meteorolog|atmospher|air-quality|carbon-cycle|hydrolog|limnolog|water-resources|cryo(?!-em)|glaci"
+      pattern: "geolog|geophysic|geochem|geodes|geomorph|geomagnet|geodynam|sediment|stratigraph|petrolog|mineralog|volcanolog|seismolog|hydrogeolog|glaciolog|tectonic|isotope-geochem|economic-geolog|mining-geolog|petroleum-geolog|marine-geolog|geological-ocean|environmental-scien|environmental-chem|environmental-engineer|environmental-microbiolog|sustainab|industrial-ecolog|life-cycle|pollution|remote-sensing|geographic-info|gis|geotechnical|quaternary|paleo|geobiolog?|conservation-scien|oceanograph|ocean|climat|meteorolog|atmospher|air-quality|carbon-cycle|hydrolog|limnolog|water-resources|glaci"
     # ---- CS / AI / data / theory ----
     - domain: sci-agents-cs-ai-data
       pattern: "computer-scien|computer-vision|computer-graphics|computer-security|computational-scien|computational-social|computational-physic|computational-chem|computational-neuro|computational-lingu|machine-learning|deep-learning|reinforcement-learning|ai-researcher|data-scien|data-engineer|database-systems|distributed-systems|formal-methods|programming-languages|knowledge-representation|information-retrieval|natural-language|cryptograph|high-performance-computing|mlops|research-software|network-scien|algorithms-researcher|theoretical-computer|human-computer|cognitive-scien|cognitive-neuro|psycholingu|neuroinformatic|connectom|neuroimaging|bioinformatic"

@@ -12,7 +12,7 @@ agricultural-entomologist: sci-agents-organismal-eco-biology
 agroecologist: sci-agents-organismal-eco-biology
 agronomist: sci-agents-agri-food-vet
 ai-researcher: sci-agents-cs-ai-data
-air-quality-scientist: sci-agents-ocean-atmos-climate
+air-quality-scientist: sci-agents-earth-environment
 algebraist: sci-agents-math-stats-or
 algorithms-researcher: sci-agents-cs-ai-data
 analytical-chemist: sci-agents-chemistry
@@ -63,7 +63,7 @@ brain-computer-interface-engineer: sci-agents-clinical
 bridge-engineer: sci-agents-engineering
 building-science-engineer: sci-agents-engineering
 cancer-biologist: sci-agents-medical-specialties
-carbon-cycle-scientist: sci-agents-ocean-atmos-climate
+carbon-cycle-scientist: sci-agents-earth-environment
 cardiologist: sci-agents-medical-specialties
 catalysis-engineer: sci-agents-molecular-cell-biology
 catalysis-scientist: sci-agents-molecular-cell-biology
@@ -79,7 +79,7 @@ cheminformatician: sci-agents-chemistry
 chromatin-biologist: sci-agents-molecular-cell-biology
 chronobiologist: sci-agents-organismal-eco-biology
 civil-engineer: sci-agents-earth-environment
-climate-risk-analyst: sci-agents-ocean-atmos-climate
+climate-risk-analyst: sci-agents-earth-environment
 climate-scientist: sci-agents-earth-environment
 climatologist: sci-agents-earth-environment
 clinical-data-manager: sci-agents-clinical
@@ -166,7 +166,7 @@ environmental-chemist: sci-agents-chemistry
 environmental-engineer: sci-agents-earth-environment
 environmental-health-scientist: sci-agents-clinical
 environmental-microbiologist: sci-agents-molecular-cell-biology
-environmental-policy-analyst: sci-agents-ocean-atmos-climate
+environmental-policy-analyst: sci-agents-earth-environment
 environmental-scientist: sci-agents-chemistry
 enzymologist: sci-agents-molecular-cell-biology
 epidemiologist: sci-agents-clinical
@@ -366,7 +366,7 @@ photonics-scientist: sci-agents-physics
 photovoltaics-solar-cell-scientist: sci-agents-materials-nano
 phylogeneticist: sci-agents-molecular-cell-biology
 physical-chemist: sci-agents-chemistry
-physical-oceanographer: sci-agents-ocean-atmos-climate
+physical-oceanographer: sci-agents-earth-environment
 physician-scientist: sci-agents-medical-specialties
 planetary-geologist: sci-agents-astronomy-space
 planetary-scientist: sci-agents-astronomy-space
@@ -492,8 +492,8 @@ virologist: sci-agents-clinical
 viticulturist-enologist: sci-agents-agri-food-vet
 vlsi-chip-design-engineer: sci-agents-electrical-computer-hw
 volcanologist: sci-agents-earth-environment
-water-resources-engineer: sci-agents-ocean-atmos-climate
-water-resources-scientist: sci-agents-ocean-atmos-climate
+water-resources-engineer: sci-agents-earth-environment
+water-resources-scientist: sci-agents-earth-environment
 weed-scientist: sci-agents-agri-food-vet
 welding-joining-engineer: sci-agents-engineering
 wetland-scientist: sci-agents-organismal-eco-biology
