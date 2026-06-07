@@ -1,3 +1,8 @@
+<p align="center">
+  <img src="docs/plugin-place-sign.svg" alt="A green street-sign blade reading PLUGIN PLACE" width="640">
+</p>
+<p align="center"><sub><em>SVG lovingly hand-drawn by Claude</em></sub></p>
+
 # plugin-place
 
 A personal, curated [Claude Code](https://docs.claude.com/en/docs/claude-code)
