@@ -2,8 +2,8 @@
 
 A personal, curated [Claude Code](https://docs.claude.com/en/docs/claude-code)
 plugin marketplace. It vendors a handful of upstream skill and agent collections
-at pinned versions and groups them into focused plugins you can install one at a
-time, with the occasional small downstream adjustment.
+at pinned versions, then groups them into focused plugins you can install one at
+a time. A few get a small downstream tweak, short of a fork.
 
 ## Why this exists
 
