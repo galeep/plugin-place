@@ -1,6 +1,18 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="117 55 967 300" role="img" aria-label="A green street blade sign reading PLUGIN PLACE">
   <title>Plugin Place</title>
-  <desc>Original hand-drawn vector; lettering outlined from Helvetica Bold so it renders identically everywhere. Drawn for the plugin-place README; no external source.</desc>
+  <desc>Hand-drawn vector by Claude (Anthropic) via galeep, for the plugin-place README. Lettering outlined from Helvetica Bold; MIT-licensed; no external image source.</desc>
+  <metadata>
+    <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/">
+      <rdf:Description rdf:about="">
+        <dc:title>Plugin Place</dc:title>
+        <dc:creator>Claude (Anthropic) via galeep</dc:creator>
+        <dc:source>galeep/plugin-place</dc:source>
+        <dc:date>2026-06-07</dc:date>
+        <dc:rights>MIT</dc:rights>
+        <dc:description>Original hand-drawn vector; lettering outlined from Helvetica Bold. No external image source.</dc:description>
+      </rdf:Description>
+    </rdf:RDF>
+  </metadata>
   <defs>
     <linearGradient id="blade" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#0a8049"/>
