@@ -60,6 +60,38 @@ def upstream_version(upstream):
     return upstream.get("pinned_tag") or upstream.get("pinned_sha") or "unpinned"
 
 
+def attribute_skill_tree(skills_dir: Path, fallback_author=None) -> None:
+    """Inject the `via galeep` vendor author into every SKILL.md one level under
+    skills_dir. Uses each file's metadata.skill-author, else `fallback_author`,
+    else a bare vendor mark. Skips files without frontmatter (nothing to edit).
+
+    Used for vendored/vendored-whole plugins (caveman, claude-scientific-writer);
+    built plugins do the same inline alongside license collection.
+    """
+    if not skills_dir.is_dir():
+        return
+    for skill_dir in sorted(skills_dir.iterdir()):
+        skill_md = skill_dir / "SKILL.md"
+        if not skill_md.is_file():
+            continue
+        text = skill_md.read_text()
+        head, _ = fm.split_frontmatter(text)
+        if head is None:
+            # A SKILL.md with no YAML frontmatter is malformed (no name/description
+            # either) and cannot be attributed without fabricating fields. Surface
+            # it loudly rather than silently leaving it unmarked.
+            print(
+                f"WARN: {skill_md.relative_to(PLUGINS_DIR)} has no frontmatter; "
+                f"skipping attribution (malformed skill)",
+                file=sys.stderr,
+            )
+            continue
+        original = fm.get_nested_field(head, "metadata", "skill-author")
+        skill_md.write_text(
+            fm.inject_author(text, attribution.skill_author(original, fallback_author))
+        )
+
+
 def clean_built_plugins() -> None:
     """Remove plugins/ entries that are regenerated (built + vendored).
     Local plugins (kind: local) are NEVER touched."""
@@ -119,7 +151,11 @@ def build_built_plugin(plugin: dict, upstream: dict, skills_table: dict) -> None
         text = skill_md.read_text()
         head, _ = fm.split_frontmatter(text)
         original = fm.get_nested_field(head, "metadata", "skill-author")
-        skill_md.write_text(fm.inject_author(text, attribution.skill_author(original)))
+        skill_md.write_text(
+            fm.inject_author(
+                text, attribution.skill_author(original, upstream.get("author"))
+            )
+        )
         normalized = licenses.normalize(fm.get_field(head, "license"))
         plugin_licenses.append(normalized)
         skill_license_lines.append(f"- `{skill_name}`: {normalized}")
@@ -235,6 +271,9 @@ def build_vendored_plugin(plugin: dict, upstream: dict) -> None:
             print(f"  dropping container directory: {container.name}/", file=sys.stderr)
             shutil.rmtree(container)
 
+    # Inject the `via galeep` vendor author into every copied SKILL.md.
+    attribute_skill_tree(skills_root_dir, upstream.get("author"))
+
     # If upstream has .mcp.json or .lsp.json at root, copy those too.
     for mcp_file in (".mcp.json", ".lsp.json"):
         src = submodule_path / mcp_file
@@ -314,6 +353,11 @@ def build_vendored_whole_plugin(plugin: dict, upstream: dict) -> None:
         s = src_root / f
         if s.is_file():
             shutil.copy2(s, plugin_dir / f)
+
+    # Inject the `via galeep` vendor author into every copied SKILL.md. Runs
+    # before apply_downstream_patches (in main); patch anchors live in hook src/
+    # and skill bodies, never the frontmatter name/author region, so this is safe.
+    attribute_skill_tree(plugin_dir / "skills", upstream.get("author"))
 
     # Preserve the upstream manifest verbatim (NOT regenerated) so its hooks/MCP
     # wiring survives. Copy only plugin.json out of .claude-plugin/ — the
