@@ -1,0 +1,67 @@
+name: CI
+
+# Runs on every PR and push to main: unit tests, the full build (which enforces
+# the assignment-table coverage gate inside render.py), a drift check that the
+# committed plugins/ tree matches a fresh build, and per-plugin validation.
+
+on:
+  push:
+    branches: [main]
+  pull_request: {}
+
+permissions:
+  contents: read
+
+jobs:
+  test-build-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install pyyaml pytest
+          sudo apt-get update -qq
+          sudo apt-get install -y jq
+
+      - name: Unit tests
+        run: python -m pytest -q
+
+      - name: Build (enforces the coverage gate)
+        run: bash scripts/build.sh
+
+      - name: Assert the committed build tree matches a fresh build
+        run: |
+          if ! git diff --quiet; then
+            echo "::error::build output differs from the committed tree; run scripts/build.sh and commit the result"
+            git --no-pager diff --stat
+            exit 1
+          fi
+
+      - name: Validate every plugin
+        run: |
+          set -euo pipefail
+          fails=0
+          for d in plugins/*/; do
+            if ! bash scripts/validate-plugin.sh "$d" >/dev/null 2>&1; then
+              echo "FAIL: $(basename "$d")"
+              bash scripts/validate-plugin.sh "$d" || true
+              fails=$((fails + 1))
+            fi
+          done
+          if [ "$fails" -gt 0 ]; then
+            echo "::error::$fails plugin(s) failed validation"
+            exit 1
+          fi
+
+      - name: Smoke-test patched caveman hook
+        run: bash scripts/smoke-caveman.sh
