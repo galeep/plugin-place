@@ -2,23 +2,32 @@
 
 A personal, curated [Claude Code](https://docs.claude.com/en/docs/claude-code)
 plugin marketplace. It vendors a handful of upstream skill and agent collections
-at pinned versions, groups them into focused plugins you can install one at a
-time, and applies a few downstream fixes where the upstream behavior did not fit.
+at pinned versions and groups them into focused plugins you can install one at a
+time, with the occasional small downstream adjustment.
 
 ## Why this exists
 
-The upstream collections this builds on ship as bare skills and agent profiles,
-with no marketplace wrapper to install or update them as a unit. Managing loose
-skills by hand (copying directories, pinning versions, re-checking what changed
-on each release) is tedious and easy to get wrong. plugin-place is the wrapper I
-wanted: it vendors those collections at pinned versions, regenerates everything
-reproducibly from a single manifest, and packages it so installing a domain is
-one command instead of a directory copy.
+Many of the upstream collections this draws on ship as bare skills and agent
+profiles, with no marketplace wrapper to install or update them as a unit.
+Managing loose skills by hand (copying directories around, re-checking what
+changed on each release) is tedious and easy to get wrong. This is the wrapper I
+wanted: it vendors those collections at pinned versions and regenerates
+everything from a single manifest, so installing a whole domain is one command.
+Some already ship as plugins; those are vendored close to intact, with a small
+downstream adjustment where I wanted to change a behavior without forking the
+whole thing.
 
-It is a personal toolkit kept in the open, because the friction that motivated it
-is not unique to me. If you hit the same rough edges, you are welcome to use it.
-Nothing here is a substitute for the upstreams; all credit for the underlying
-skills and agents goes to their original authors (see Attribution below).
+It also tries to be careful about provenance. Skills in particular get passed
+around like plain text files, copied from repo to repo with `cp` until the
+original author and version fall off. Plugins hold up better, since the format
+ships a manifest naming an author and a source; a loose skill is just a markdown
+file with nothing to keep the credit attached. I would rather not add to that
+pile, so each piece here keeps its origin: every vendored skill and agent carries
+the author and license its upstream provides. Partly that is principle and partly
+it is laziness, since vendoring with a record is less work than keeping a fork.
+
+It is a personal toolkit kept in the open, since the friction behind it is not
+mine alone. If you hit the same rough edges, you are welcome to use it.
 
 ## Quick start
 
