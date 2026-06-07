@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="117 55 967 300" role="img" aria-label="A green street blade sign reading PLUGIN PLACE">
+  <title>Plugin Place</title>
+  <desc>Original hand-drawn vector; lettering outlined from Helvetica Bold so it renders identically everywhere. Drawn for the plugin-place README; no external source.</desc>
+  <defs>
+    <linearGradient id="blade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0a8049"/>
+      <stop offset="1" stop-color="#005f31"/>
+    </linearGradient>
+    <linearGradient id="pole" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#c2c8cc"/>
+      <stop offset="0.5" stop-color="#868d92"/>
+      <stop offset="1" stop-color="#c2c8cc"/>
+    </linearGradient>
+    <filter id="shadow" x="-12%" y="-25%" width="124%" height="170%">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#000000" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+
+  <!-- short galvanized U-channel stub (banner proportions) with punch holes + mounting cap -->
+  <rect x="585" y="250" width="30" height="75" rx="6" fill="url(#pole)"/>
+  <g fill="#5d6368">
+    <ellipse cx="600" cy="283" rx="5" ry="8"/>
+    <ellipse cx="600" cy="308" rx="5" ry="8"/>
+  </g>
+  <rect x="572" y="232" width="56" height="26" rx="5" fill="#7c8388"/>
+
+  <!-- green blade with classic inset white border (hugs the legend) -->
+  <g filter="url(#shadow)">
+    <rect x="156.7" y="86" width="886.6" height="164" rx="14" fill="url(#blade)"/>
+    <rect x="172.7" y="102" width="854.6" height="132" rx="8" fill="none" stroke="#ffffff" stroke-width="5" stroke-opacity="0.92"/>
+  </g>
+
+  <!-- baked lettering: Helvetica Bold outlines, integer coords, cap tops aligned -->
+  <path fill="#ffffff" d="M278 177H258V210H239V118H279Q293 118 301 125Q309 132 309 147Q309 163 301 170Q293 177 278 177ZM287 158Q290 154 290 147Q290 140 287 137Q283 134 276 134H258V161H276Q283 161 287 158ZM330 118H349V193H395V210H330ZM469 174V118H488V174Q488 189 484 197Q475 212 451 212Q427 212 419 197Q414 189 414 174V118H434V174Q434 184 436 188Q439 196 451 196Q463 196 466 188Q469 184 469 174ZM569 208Q561 212 550 212Q532 212 520 200Q508 187 508 165Q508 142 520 129Q533 116 553 116Q570 116 581 124Q592 133 593 147H574Q572 137 564 133Q559 131 553 131Q542 131 535 140Q528 148 528 165Q528 182 535 189Q543 196 553 196Q563 196 569 191Q575 185 577 176H555V161H594V210H581L579 198Q573 205 569 208ZM617 118H636V210H617ZM734 210H715L677 145V210H659V118H679L716 182V118H734Z"/>
+  <path fill="#ffffff" d="M797 143H789V157H781V118H797Q803 118 807 121Q810 124 810 130Q810 137 807 140Q803 143 797 143ZM801 135Q802 133 802 130Q802 127 801 126Q799 125 796 125H789V136H796Q799 136 801 135ZM819 118H828V150H847V157H819ZM878 149H864L861 157H853L867 118H876L889 157H881ZM876 142 871 127 866 142ZM925 154Q920 158 914 158Q905 158 900 152Q896 147 896 138Q896 127 901 122Q906 117 913 117Q923 117 928 124Q930 127 930 131H922Q921 128 920 127Q918 124 914 124Q909 124 907 128Q904 131 904 138Q904 144 907 148Q909 151 914 151Q918 151 920 148Q921 147 922 144H930Q929 150 925 154ZM966 140H948V150H969V157H940V118H968V125H948V133H966Z"/>
+</svg>

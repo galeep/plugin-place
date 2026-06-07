@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/plugin-place-sign.svg" alt="Plugin Place" width="640">
+</p>
+
 # plugin-place
 
 A personal, curated [Claude Code](https://docs.claude.com/en/docs/claude-code)
