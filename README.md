@@ -155,8 +155,7 @@ All credit for the underlying skills and agents goes to their original authors,
 and they are many. Beyond the upstream organizations, the corpus includes work
 by independent authors and labs such as Harvard MIMS (PrimeKG), Exa, and many
 individual contributors. This repository is only the packaging: the vendoring,
-taxonomy, and marketplace wrapper. It claims no authorship of the underlying
-skills or agents, and the `via galeep` mark denotes the vendor, not the author.
+taxonomy, and marketplace wrapper. Authorship is entirely upstream.
 
 This repository's own scaffolding (build scripts, manifest, taxonomy, docs) is
 MIT-licensed; see [`LICENSE`](LICENSE).
