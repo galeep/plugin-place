@@ -52,3 +52,32 @@ def get_nested_field(frontmatter, parent, key):
             if m:
                 return _unquote(m.group(1))
     return None
+
+
+def yaml_dq(value):
+    """Double-quote a scalar for YAML, escaping backslashes and quotes."""
+    escaped = value.replace("\\", "\\\\").replace('"', '\\"')
+    return f'"{escaped}"'
+
+
+def inject_author(text, author):
+    """Insert `author: "<author>"` after the top-level `name:` line.
+
+    Idempotent: if a top-level `author:` already exists, return text unchanged.
+    Raises ValueError if there is no frontmatter to edit.
+    """
+    head, body = split_frontmatter(text)
+    if head is None:
+        raise ValueError("inject_author: no frontmatter present")
+    if get_field(head, "author") is not None:
+        return text
+    author_line = f"author: {yaml_dq(author)}"
+    out, inserted = [], False
+    for line in head.splitlines():
+        out.append(line)
+        if not inserted and re.match(r"^name:[ \t]*", line):
+            out.append(author_line)
+            inserted = True
+    if not inserted:
+        out.insert(0, author_line)
+    return "---\n" + "\n".join(out) + "\n---\n" + body
