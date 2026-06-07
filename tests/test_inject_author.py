@@ -40,3 +40,26 @@ def test_inject_raises_without_frontmatter():
     import pytest
     with pytest.raises(ValueError):
         fm.inject_author("no frontmatter\n", "x")
+
+EXISTING_AUTHOR = (
+    "---\n"
+    "name: adaptyv\n"
+    'author: "K-Dense, Inc."\n'
+    "description: x.\n"
+    "metadata:\n"
+    "  skill-author: K-Dense Inc.\n"
+    "---\n"
+    "body\n"
+)
+
+def test_inject_appends_mark_to_existing_author():
+    out = fm.inject_author(EXISTING_AUTHOR, "ignored via galeep")
+    head, _ = fm.split_frontmatter(out)
+    assert fm.get_field(head, "author") == "K-Dense, Inc. via galeep"
+
+def test_inject_idempotent_on_marked_existing_author():
+    once = fm.inject_author(EXISTING_AUTHOR, "ignored via galeep")
+    twice = fm.inject_author(once, "ignored2 via galeep")
+    assert once == twice
+    head, _ = fm.split_frontmatter(twice)
+    assert sum(1 for l in head.splitlines() if l.startswith("author:")) == 1

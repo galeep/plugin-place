@@ -30,6 +30,10 @@ def test_normalize_unknown_and_none():
     assert lic.normalize("") == "Unknown"
     assert lic.normalize("Unknown") == "Unknown"
 
+def test_normalize_proprietary_variants():
+    assert lic.normalize("Proprietary. LICENSE.txt has complete terms") == "Proprietary"
+    assert lic.normalize("Proprietary (API key required)") == "Proprietary"
+
 def test_normalize_passthrough():
     weird = "CeCILL FREE SOFTWARE LICENSE AGREEMENT"
     assert lic.normalize(weird) == weird

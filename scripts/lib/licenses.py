@@ -21,6 +21,8 @@ _NORMALIZE = {
     "gplv3 license": "GPL-3.0",
     "cc-by-4.0": "CC-BY-4.0",
     "https://creativecommons.org/licenses/by/4.0/": "CC-BY-4.0",
+    "proprietary. license.txt has complete terms": "Proprietary",
+    "proprietary (api key required)": "Proprietary",
     "unknown": "Unknown",
     "": "Unknown",
 }

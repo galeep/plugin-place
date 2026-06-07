@@ -68,17 +68,35 @@ def yaml_dq(value):
     return f'"{escaped}"'
 
 
-def inject_author(text, author):
-    """Insert `author: "<author>"` after the top-level `name:` line.
+VENDOR_MARK = "via galeep"
 
-    Idempotent: if a top-level `author:` already exists, return text unchanged.
+
+def inject_author(text, author):
+    """Ensure a top-level `author:` carrying the '<VENDOR_MARK>' vendor mark.
+
+    - No top-level `author:` line: insert `author: "<author>"` after `name:`.
+      (`author` is the precomputed vendor string and already ends in the mark.)
+    - Existing author without the mark (e.g. upstream `author: "K-Dense, Inc."`):
+      append ' <VENDOR_MARK>' to its value, preserving the upstream text.
+    - Existing author already carrying the mark: unchanged (idempotent rebuilds).
+
     Raises ValueError if there is no frontmatter to edit.
     """
     head, body = split_frontmatter(text)
     if head is None:
         raise ValueError("inject_author: no frontmatter present")
-    if get_field(head, "author") is not None:
-        return text
+
+    existing = get_field(head, "author")
+    if existing is not None:
+        if VENDOR_MARK in existing:
+            return text
+        marked = f"author: {yaml_dq(existing + ' ' + VENDOR_MARK)}"
+        out = [
+            marked if re.match(r"^author:[ \t]*\S", line) else line
+            for line in head.splitlines()
+        ]
+        return "---\n" + "\n".join(out) + "\n---\n" + body
+
     author_line = f"author: {yaml_dq(author)}"
     out, inserted = [], False
     for line in head.splitlines():
