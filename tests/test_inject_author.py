@@ -33,6 +33,9 @@ def test_inject_preserves_body_and_metadata():
 def test_yaml_dq_escapes_quotes():
     assert fm.yaml_dq('a "b"') == '"a \\"b\\""'
 
+def test_yaml_dq_escapes_newline():
+    assert fm.yaml_dq("line1\nline2") == '"line1\\nline2"'
+
 def test_inject_raises_without_frontmatter():
     import pytest
     with pytest.raises(ValueError):

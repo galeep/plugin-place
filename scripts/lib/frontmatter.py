@@ -25,7 +25,13 @@ def _unquote(s):
 
 
 def get_field(frontmatter, key):
-    """First top-level (zero-indent) scalar value for `key`, or None."""
+    """First top-level (zero-indent) scalar value for `key`, or None.
+
+    Intended for single-line scalars (name, license, author). For a block
+    scalar (`key: >` / `key: |`) it returns the indicator, not the folded
+    text — callers in this repo only read single-line fields, so that path is
+    intentionally unsupported rather than parsed.
+    """
     if frontmatter is None:
         return None
     for line in frontmatter.splitlines():
@@ -55,8 +61,10 @@ def get_nested_field(frontmatter, parent, key):
 
 
 def yaml_dq(value):
-    """Double-quote a scalar for YAML, escaping backslashes and quotes."""
-    escaped = value.replace("\\", "\\\\").replace('"', '\\"')
+    """Double-quote a scalar for YAML, escaping backslashes, quotes, newlines."""
+    escaped = (
+        value.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n")
+    )
     return f'"{escaped}"'
 
 
