@@ -12,15 +12,15 @@
     "repo": "K-Dense-AI/scientific-agents"
   },
   "claude-scientific-writer": {
-    "version": "v2.14.0",
-    "sha": "5dea0f299ec1e0b05a0f1f1378c4a0f2a27fd74a",
-    "describe": "v2.14.0",
+    "version": "v2.15.0",
+    "sha": "dd271f4062874177365c32fde95955e1155e58de",
+    "describe": "v2.15.0",
     "repo": "K-Dense-AI/claude-scientific-writer"
   },
   "caveman": {
-    "version": "v1.8.2",
-    "sha": "63a91ecadbf4c4719a4602a5abb00883f9966034",
-    "describe": "v1.8.2",
+    "version": "v1.9.0",
+    "sha": "32f37af81a02a4b91c107b768f1365848e5bf005",
+    "describe": "v1.9.0",
     "repo": "JuliusBrussee/caveman"
   }
 }

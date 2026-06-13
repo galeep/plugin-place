@@ -35,14 +35,14 @@ upstreams:
     license: MIT
   claude-scientific-writer:
     submodule: vendor/claude-scientific-writer
-    pinned_tag: v2.14.0
+    pinned_tag: v2.15.0
     upstream_repo: K-Dense-AI/claude-scientific-writer
     license: MIT
     # fallback author for any SKILL.md lacking metadata.skill-author
     author: "K-Dense Inc."
   caveman:
     submodule: vendor/caveman
-    pinned_tag: v1.8.2
+    pinned_tag: v1.9.0
     upstream_repo: JuliusBrussee/caveman
     license: MIT
     # caveman skill files carry no author; attribute the upstream author
