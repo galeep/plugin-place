@@ -210,6 +210,12 @@
       "description": "Caveman: ultra-compressed communication mode (lite/full/ultra/wenyan). Cuts ~75% of output tokens while keeping technical accuracy. Downstream-patched so terseness reads as value-proportional allocation: a floor for low-value turns, not a cap on high-value ones (see patches/caveman.json).",
       "source": "./plugins/caveman",
       "category": "productivity"
+    },
+    {
+      "name": "laconic",
+      "description": "Laconic: a value-proportional communication register engine. Ships the 'laconic' register: telegraphic but literate, a sharp colleague writing fast. Drop the function words a reader restores for free, keep the logic connectives, notebook symbols where they decode. Registers are data files under registers/; drop in a new one to add a voice, no code change.",
+      "source": "./plugins/laconic",
+      "category": "productivity"
     }
   ],
   "metadata": {
