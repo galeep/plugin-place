@@ -35,7 +35,7 @@ upstreams:
     license: MIT
   claude-scientific-writer:
     submodule: vendor/claude-scientific-writer
-    pinned_tag: v2.15.1
+    pinned_tag: v2.17.1
     upstream_repo: K-Dense-AI/claude-scientific-writer
     license: MIT
     # fallback author for any SKILL.md lacking metadata.skill-author
