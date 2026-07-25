@@ -10,6 +10,15 @@ on:
     - cron: "17 9 * * *"  # 09:17 UTC daily, offset to avoid the top-of-hour rush
   workflow_dispatch: {}
 
+# A manual dispatch fired while the cron is mid-run would race it: two runs
+# checking the same upstream, both passing the dedupe gate below (neither has
+# opened its PR yet), producing the duplicate that gate exists to prevent.
+# Queue instead of cancelling: a half-finished sync should complete rather than
+# be killed partway through a submodule bump.
+concurrency:
+  group: sync-upstream
+  cancel-in-progress: false
+
 permissions:
   contents: write
   pull-requests: write
@@ -286,8 +295,59 @@ jobs:
               fh.write("REVIEW_EOF\n")
           PY
 
-      - name: Open pull request
+      - name: Skip if an identical sync proposal is already open
+        id: dedupe
         if: steps.check.outputs.changed == '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # DESIGN RATIONALE: the check step compares upstream against the pin on
+          # the CHECKED-OUT ref, not against what is already proposed. So while a
+          # sync PR sits unmerged, the ref stays stale, every subsequent run
+          # re-detects the same gap, and opens another PR for a bump already
+          # awaiting review. That is how #33-#49 accumulated: 17 PRs carrying
+          # 2 distinct upstream pins.
+          #
+          # Volume is the real cost, not tidiness. Each sync PR is a human gate
+          # on third-party code that CI will execute once approved, and a gate is
+          # worth exactly the review behind each click. A queue nobody can read
+          # in full degrades into a rubber stamp, so suppressing duplicates is a
+          # security property here, not housekeeping.
+          #
+          # Compares whole trees rather than pins: exact, and needs no parsing.
+          # A tree matches only when this run would propose byte-for-byte what an
+          # open PR already proposes. If the base has advanced since that PR was
+          # opened the trees differ, and a fresh PR is then genuinely warranted
+          # rather than suppressed.
+          git add -A
+          tree="$(git write-tree)"
+          echo "regenerated tree: $tree"
+
+          duplicate=""
+          for pr in $(gh pr list --state open --label upstream-sync --json number --jq '.[].number'); do
+            # A PR whose head ref is gone cannot be compared; skip it rather than
+            # fail the run, but say so, since a silent skip here would let a
+            # duplicate through unexplained.
+            if ! git fetch --quiet origin "refs/pull/$pr/head" 2>/dev/null; then
+              echo "::warning::could not fetch refs/pull/$pr/head; not comparing against it"
+              continue
+            fi
+            if [ "$(git rev-parse FETCH_HEAD^{tree})" = "$tree" ]; then
+              duplicate="$pr"
+              break
+            fi
+          done
+
+          if [ -n "$duplicate" ]; then
+            echo "::notice::identical sync proposal already open as #${duplicate}; not opening a duplicate"
+            echo "proceed=0" >> "$GITHUB_OUTPUT"
+          else
+            echo "proceed=1" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open pull request
+        if: steps.check.outputs.changed == '1' && steps.dedupe.outputs.proceed == '1'
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1  # v8.1.1
         with:
           branch: sync/upstream-${{ github.run_id }}
