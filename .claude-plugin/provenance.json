@@ -12,9 +12,9 @@
     "repo": "K-Dense-AI/scientific-agents"
   },
   "claude-scientific-writer": {
-    "version": "v2.16.0",
-    "sha": "44414bded0ea850658aac59c014f3d6bec6d1ca8",
-    "describe": "v2.16.0",
+    "version": "v2.17.1",
+    "sha": "47178036699a9ca3573834dfbda0c5d97ca4552c",
+    "describe": "v2.17.1",
     "repo": "K-Dense-AI/claude-scientific-writer"
   },
   "caveman": {
