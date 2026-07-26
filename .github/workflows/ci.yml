@@ -68,3 +68,6 @@ jobs:
 
       - name: Smoke-test patched caveman hook
         run: bash scripts/smoke-caveman.sh
+
+      - name: Smoke-test laconic hooks
+        run: bash scripts/smoke-laconic.sh

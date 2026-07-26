@@ -48,4 +48,36 @@ printf '%s' '{"prompt":"stop laconic"}' | CLAUDE_CONFIG_DIR="$tmp" node "$H/laco
 empty="$(printf '%s' '{"prompt":"hello"}' | CLAUDE_CONFIG_DIR="$tmp" node "$H/laconic-mode-tracker.js")"
 [ -z "$empty" ] || fail "reminder emitted while register inactive"
 
-echo "smoke-laconic: PASS (6 checks)"
+# 7. Bare hook install (no registers/ dir): the resolved default must still be
+# on the whitelist. Checks 1-6 all run with registers/ present, so this path was
+# uncovered — and it is where the failure hid: registryDefault() returns
+# FALLBACK_DEFAULT unconditionally, so if VALID_MODES is built from an empty
+# registry alone it collapses to ['off'], the hooks write a flag readFlag() then
+# refuses, and activation silently no-ops. Layout mirrors the real one
+# (hooks at <root>/src/hooks, registers at <root>/registers) with registers/ absent.
+bare="$tmp/bare/src/hooks"
+mkdir -p "$bare"
+cp "$H"/laconic-config.js "$H"/laconic-registry.js "$bare/"
+[ -e "$tmp/bare/registers" ] && fail "bare fixture must not have a registers/ dir"
+node -e '
+  const cfg = require(process.argv[1]);
+  const def = cfg.getDefaultMode();
+  if (!cfg.VALID_MODES.includes(def)) {
+    console.error("default mode " + JSON.stringify(def) + " not in VALID_MODES " + JSON.stringify(cfg.VALID_MODES));
+    process.exit(1);
+  }
+' "$bare/laconic-config.js" || fail "bare install: resolved default not accepted by its own whitelist"
+
+# and the flag round-trips: what the hooks write, readFlag must accept back.
+node -e '
+  const cfg = require(process.argv[1]);
+  const p = process.argv[2] + "/.laconic-active";
+  cfg.safeWriteFlag(p, cfg.getDefaultMode());
+  const got = cfg.readFlag(p);
+  if (got !== cfg.getDefaultMode()) {
+    console.error("round-trip lost the flag: wrote " + cfg.getDefaultMode() + ", read " + JSON.stringify(got));
+    process.exit(1);
+  }
+' "$bare/laconic-config.js" "$tmp" || fail "bare install: flag write/read round-trip broken"
+
+echo "smoke-laconic: PASS (7 checks)"

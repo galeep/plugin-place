@@ -59,8 +59,9 @@ A register is a directory under `registers/<id>/`:
 
 Drop the directory in. `laconic-config.js` derives `VALID_MODES` from the
 registry at load, so the new tokens are valid immediately. No list to update, no
-code to touch. Token collisions resolve first-by-sorted-id; set `LACONIC_DEBUG=1`
-to see skipped/collided registers on stderr.
+code to touch. Token collisions resolve first-by-sorted **directory name** (not
+by the `id` field, which may differ from the directory it lives in); set
+`LACONIC_DEBUG=1` to see skipped/collided registers on stderr.
 
 ## Layout
 

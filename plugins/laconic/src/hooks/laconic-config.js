@@ -34,6 +34,13 @@ const REG = (() => { try { return registry.loadRegisters(); } catch (e) { return
 const VALID_MODES = (() => {
   const modes = SPECIAL_MODES.slice();
   if (REG) modes.push(...registry.allTokens(REG), ...registry.allAliases(REG));
+  // FALLBACK_DEFAULT must be on the whitelist even when the registry yields no
+  // tokens (registers/ absent or every register rejected). getDefaultMode() ->
+  // registryDefault() returns it unconditionally in that case, so omitting it
+  // here makes the hooks write a flag that readFlag() then refuses: activation
+  // silently no-ops and /laconic <level> rejects its own default. That is the
+  // documented bare-hook-install path, so it has to validate.
+  if (!modes.includes(FALLBACK_DEFAULT)) modes.push(FALLBACK_DEFAULT);
   return Array.from(new Set(modes));
 })();
 
@@ -125,14 +132,24 @@ function safeWriteFlag(flagPath, content) {
 // mode string or null on any anomaly.
 function readFlag(flagPath) {
   try {
+    // Resolve the parent through the same gate safeWriteFlag uses. Checking only
+    // the flag path catches a symlinked FLAG but not a symlinked PARENT, so a
+    // hostile ~/.claude -> attacker-owned dir would be read from despite the
+    // header promising parent-dir safety. safeRealDir returns null unless the
+    // resolved dir is owned by the current user, so an unsafe parent yields
+    // nothing rather than a read.
+    const realDir = safeRealDir(path.dirname(flagPath));
+    if (!realDir) return null;
+    const realFlagPath = path.join(realDir, path.basename(flagPath));
+
     let st;
-    try { st = fs.lstatSync(flagPath); } catch (e) { return null; }
+    try { st = fs.lstatSync(realFlagPath); } catch (e) { return null; }
     if (st.isSymbolicLink() || !st.isFile() || st.size > MAX_FLAG_BYTES) return null;
 
     const O_NOFOLLOW = typeof fs.constants.O_NOFOLLOW === 'number' ? fs.constants.O_NOFOLLOW : 0;
     let fd, out;
     try {
-      fd = fs.openSync(flagPath, fs.constants.O_RDONLY | O_NOFOLLOW);
+      fd = fs.openSync(realFlagPath, fs.constants.O_RDONLY | O_NOFOLLOW);
       const buf = Buffer.alloc(MAX_FLAG_BYTES);
       const n = fs.readSync(fd, buf, 0, MAX_FLAG_BYTES, 0);
       out = buf.slice(0, n).toString('utf8');
