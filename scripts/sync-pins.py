@@ -21,7 +21,7 @@ import sys
 
 import yaml
 
-SHA_PINNED = "-"  # sentinel: upstream tracked by SHA, not by tag
+UNPINNED = "-"  # sentinel: upstream carries neither pinned_tag nor pinned_sha
 
 
 def pin_map(stream):
@@ -35,10 +35,21 @@ def pin_map(stream):
         if not isinstance(cfg, dict):
             raise ValueError(f"upstream {key!r} is not a mapping")
         tag = cfg.get("pinned_tag")
-        # SHA-pinned upstreams carry no pinned_tag. Emit the sentinel rather
-        # than skipping them, so "absent from the file" and "present but
-        # SHA-pinned" stay distinguishable.
-        lines.append(f"{key}={tag if tag else SHA_PINNED}")
+        sha = cfg.get("pinned_sha")
+        # Emit whichever pin the upstream actually uses. Both kinds must appear
+        # as their real value: collapsing SHA-pinned upstreams to a single
+        # sentinel would make two DIFFERENT sha pins compare equal, and the
+        # dedupe gate would then suppress a proposal that genuinely differs.
+        # The cron only advances tag-pinned upstreams, but sha pins move by hand
+        # and a hand-bumped sha can ride along in a sync PR.
+        # Prefixed so a tag and a sha can never collide in the same namespace.
+        if tag:
+            value = f"tag:{tag}"
+        elif sha:
+            value = f"sha:{sha}"
+        else:
+            value = UNPINNED
+        lines.append(f"{key}={value}")
     return lines
 
 
