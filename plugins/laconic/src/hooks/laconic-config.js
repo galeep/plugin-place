@@ -38,7 +38,10 @@ const registry = require('./laconic-registry');
 
 const SPECIAL_MODES = ['off'];
 const FALLBACK_DEFAULT = 'laconic';
-const MAX_FLAG_BYTES = 64; // longest legit token is short; 64 leaves slack without enabling exfil
+// Derived from the registry's token bound rather than restated, so the two
+// cannot drift. If the read cap were ever the smaller of the two, a token the
+// registry accepts could be written and then never read back.
+const MAX_FLAG_BYTES = registry.MAX_TOKEN_BYTES;
 
 // Registry loaded once at module load. VALID_MODES = specials ∪ tokens ∪ aliases.
 const REG = (() => { try { return registry.loadRegisters(); } catch (e) { return null; } })();
@@ -113,6 +116,15 @@ function safeRealDir(dir) {
 // Symlink-safe atomic flag write. Silent-fails (flag is best-effort).
 function safeWriteFlag(flagPath, content) {
   try {
+    // Refuse to persist anything readFlag would reject. The write and read sides
+    // were previously asymmetric: write accepted any string while read enforced
+    // both a size cap and the whitelist, so a mode arriving from env, config, or
+    // a user-supplied register could be written and then rejected on every read.
+    // The flag would sit on disk looking correct while activation silently
+    // no-opped. Validating here makes an unreadable flag unwritable.
+    const value = String(content);
+    if (!VALID_MODES.includes(value) || Buffer.byteLength(value, 'utf8') > MAX_FLAG_BYTES) return;
+
     const dir = path.dirname(flagPath);
     fs.mkdirSync(dir, { recursive: true });
     const realDir = safeRealDir(dir);

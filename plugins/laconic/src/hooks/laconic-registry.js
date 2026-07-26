@@ -26,6 +26,18 @@ function defaultRegistersDir() {
 // whitespace, and anything that could not be a legitimate flag value.
 const TOKEN_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
+// Upper bound on a token's on-disk size. The flag file is read back with a hard
+// cap, so a token longer than this could be WRITTEN and then never READ: the
+// hooks would persist a mode the reader always rejects, and activation would
+// silently no-op. Bounding at load keeps VALID_MODES incapable of holding a
+// token that cannot round-trip. laconic-config.js derives its MAX_FLAG_BYTES
+// from this constant so the two cannot drift apart.
+const MAX_TOKEN_BYTES = 64;
+
+function tokenOk(t) {
+  return typeof t === 'string' && TOKEN_RE.test(t) && Buffer.byteLength(t, 'utf8') <= MAX_TOKEN_BYTES;
+}
+
 function isPlainObject(v) {
   return v !== null && typeof v === 'object' && !Array.isArray(v);
 }
@@ -39,12 +51,12 @@ function loadOne(dir) {
   } catch (e) {
     return null;
   }
-  if (!isPlainObject(json) || typeof json.id !== 'string' || !TOKEN_RE.test(json.id)) {
+  if (!isPlainObject(json) || !tokenOk(json.id)) {
     return null;
   }
   if (!isPlainObject(json.tokens)) return null;
 
-  const tokens = Object.keys(json.tokens).filter(t => TOKEN_RE.test(t));
+  const tokens = Object.keys(json.tokens).filter(tokenOk);
   if (tokens.length === 0) return null;
 
   let body = '';
@@ -58,7 +70,7 @@ function loadOne(dir) {
   if (isPlainObject(json.aliases)) {
     for (const [from, to] of Object.entries(json.aliases)) {
       // Alias must map to a real token this register owns.
-      if (TOKEN_RE.test(from) && typeof to === 'string' && tokens.includes(to)) {
+      if (tokenOk(from) && tokenOk(to) && tokens.includes(to)) {
         aliases[from] = to;
       }
     }
@@ -113,6 +125,16 @@ function loadRegisters(baseDir) {
     }
     for (const [from, to] of Object.entries(reg.aliases)) {
       if (out.tokenMap[from] || out.aliasMap[from]) continue; // never shadow a real token
+      // The alias target must be a token THIS register actually won. Without
+      // this check an alias resurrects a token that lost a collision: loadOne
+      // only proved `to` is declared by the register, not that the register
+      // still owns it after cross-register collision resolution. Registering it
+      // anyway would make the dropped token reachable through the back door and
+      // contradict first-by-sorted-name resolution.
+      if (out.tokenMap[to] !== reg) {
+        if (debug) process.stderr.write(`[laconic] registry: alias '${from}' -> '${to}' dropped; '${reg.id}' does not own that token after collision resolution\n`);
+        continue;
+      }
       out.aliasMap[from] = { register: reg, token: to };
     }
   }
@@ -139,4 +161,4 @@ function resolve(registry, mode) {
   return null;
 }
 
-module.exports = { loadRegisters, allTokens, allAliases, resolve, defaultRegistersDir };
+module.exports = { loadRegisters, allTokens, allAliases, resolve, defaultRegistersDir, MAX_TOKEN_BYTES };
