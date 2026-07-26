@@ -10,6 +10,24 @@ on:
     - cron: "17 9 * * *"  # 09:17 UTC daily, offset to avoid the top-of-hour rush
   workflow_dispatch: {}
 
+# A manual dispatch fired while the cron is mid-run would race it: two runs
+# checking the same upstream, both passing the dedupe gate below (neither has
+# opened its PR yet), producing the duplicate that gate exists to prevent.
+# Queue instead of cancelling: a half-finished sync should complete rather than
+# be killed partway through a submodule bump.
+#
+# Known cost, accepted deliberately: GitHub holds at most ONE pending run per
+# group, and a third trigger arriving while one runs and one waits cancels the
+# waiter. A cancelled run does not send a failure notification, so that day's
+# sync would vanish quietly. Reaching it needs three overlapping triggers
+# against a once-daily cron, so it takes deliberate manual dispatching; the
+# timeout-minutes below caps how long a hung run can hold the lock and make it
+# reachable at all. Prefixed with github.workflow so a future workflow reusing
+# the literal name cannot contend for the same lock.
+concurrency:
+  group: ${{ github.workflow }}-sync-upstream
+  cancel-in-progress: false
+
 permissions:
   contents: write
   pull-requests: write
@@ -17,6 +35,10 @@ permissions:
 jobs:
   sync:
     runs-on: ubuntu-latest
+    # The default is 360 minutes. A run hung on a network step would hold the
+    # concurrency lock that whole time, which is what makes the silent
+    # cancellation described above reachable. This job is minutes of work.
+    timeout-minutes: 20
     steps:
       - name: Check out marketplace repo
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
@@ -286,8 +308,108 @@ jobs:
               fh.write("REVIEW_EOF\n")
           PY
 
-      - name: Open pull request
+      - name: Skip if an identical sync proposal is already open
+        id: dedupe
         if: steps.check.outputs.changed == '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # NOTE: deliberately no `set -e`. Every failure below is handled
+          # explicitly so the FAIL DIRECTION is a decision rather than an
+          # accident. See the fail-open rationale further down.
+          set -uo pipefail
+
+          # DESIGN RATIONALE: the check step compares upstream against the pin on
+          # the CHECKED-OUT ref, not against what is already proposed. So while a
+          # sync PR sits unmerged, the ref stays stale, every subsequent run
+          # re-detects the same gap, and opens another PR for a bump already
+          # awaiting review. That is how #33-#49 accumulated: 17 PRs carrying
+          # 2 distinct upstream pins.
+          #
+          # Volume is the real cost, not tidiness. Each sync PR is a human gate
+          # on third-party code that CI will execute once approved, and a gate is
+          # worth exactly the review behind each click. A queue nobody can read
+          # in full degrades into a rubber stamp, so suppressing duplicates is a
+          # security property here, not housekeeping.
+          #
+          # Compares PIN SETS, not trees. A tree comparison is base-dependent:
+          # any unrelated commit landing on main changes the regenerated tree, so
+          # the gate would only match while main is frozen. The pin set is what
+          # the proposal *is*, and survives base drift.
+          #
+          # FAIL DIRECTION: every error path below opens the PR (fail-open) and
+          # says why. A duplicate PR is noise; a suppressed one is a sync that
+          # silently never happened, and this workflow's whole job is telling a
+          # human that third-party code moved. Noise beats silence, so an
+          # unusable gate must not become an invisible one.
+          fail_open() {
+            echo "::warning::dedupe: $1; opening the PR rather than risking a suppressed sync"
+            echo "proceed=1" >> "$GITHUB_OUTPUT"
+            exit 0
+          }
+
+          if ! pins_here="$(python3 scripts/sync-pins.py plugins.yaml)"; then
+            fail_open "could not read local pins from plugins.yaml"
+          fi
+          echo "proposing pins:"; echo "$pins_here" | sed 's/^/  /'
+
+          # --limit is load-bearing: gh pr list defaults to 30, and the backlog
+          # this gate exists to prevent already reached 17. Sorted newest-first,
+          # so silently dropping the tail would drop the oldest PR — the one most
+          # likely to be the match.
+          #
+          # Selects on head-branch prefix rather than the upstream-sync label:
+          # create-pull-request applies labels in a separate API call after the
+          # PR exists, so a label failure would leave a real proposal invisible
+          # here. It also catches a hand-rebased sync PR (e.g. #50), which
+          # carried no labels at all. The branch name is set by this workflow.
+          if ! open_prs="$(gh pr list --state open --limit 200 \
+                             --json number,headRefName \
+                             --jq '.[] | select(.headRefName | startswith("sync/upstream-")) | .number')"; then
+            fail_open "gh pr list failed (auth, rate limit, or API error)"
+          fi
+
+          duplicate=""
+          for pr in $open_prs; do
+            # --no-recurse-submodules: fetch.recurseSubmodules defaults to
+            # on-demand, so fetching a PR head whose gitlink is not present
+            # locally would trigger a submodule fetch whose failure would fail
+            # this comparison for an unrelated reason.
+            if ! git fetch --quiet --no-recurse-submodules origin "refs/pull/$pr/head" 2>&1; then
+              echo "::warning::dedupe: could not fetch refs/pull/$pr/head; not compared against #$pr"
+              continue
+            fi
+            if ! pins_there="$(git show FETCH_HEAD:plugins.yaml 2>/dev/null | python3 scripts/sync-pins.py -)"; then
+              echo "::warning::dedupe: could not read pins from #$pr; not compared against it"
+              continue
+            fi
+            if [ "$pins_there" = "$pins_here" ]; then
+              duplicate="$pr"
+              break
+            fi
+          done
+
+          if [ -n "$duplicate" ]; then
+            echo "::notice::identical sync proposal already open as #${duplicate}; not opening a duplicate"
+            # Job summary, not just the log. A suppression that only ever appears
+            # in a green cron's log is unobservable in the GitHub UI, which is
+            # the same "green means current" trap this workflow already risks.
+            {
+              echo "### Sync suppressed"
+              echo
+              echo "Identical pin set already proposed in #${duplicate}. No new PR opened."
+              echo
+              echo '```'
+              echo "$pins_here"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "proceed=0" >> "$GITHUB_OUTPUT"
+          else
+            echo "proceed=1" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open pull request
+        if: steps.check.outputs.changed == '1' && steps.dedupe.outputs.proceed == '1'
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1  # v8.1.1
         with:
           branch: sync/upstream-${{ github.run_id }}
