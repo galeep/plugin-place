@@ -276,3 +276,15 @@ plugins:
     # rather than a silent unpatched publish.
     patched: true
     description: "Caveman: ultra-compressed communication mode (lite/full/ultra/wenyan). Cuts ~75% of output tokens while keeping technical accuracy. Downstream-patched so terseness reads as value-proportional allocation: a floor for low-value turns, not a cap on high-value ones (see patches/caveman.json)."
+
+  # ──────────────────────────────────────────────────────────────────────
+  # Local plugin — authored in-repo, never regenerated (kind: local).
+  #   Files under plugins/laconic/ are the source of truth; render.py leaves
+  #   them untouched (clean_built_plugins skips local) and just emits a
+  #   marketplace entry pointing at them. No submodule, no patch layer.
+  # ──────────────────────────────────────────────────────────────────────
+
+  - name: laconic
+    kind: local
+    category: productivity
+    description: "Laconic: a value-proportional communication register engine. Ships the 'laconic' register: telegraphic but literate, a sharp colleague writing fast. Drop the function words a reader restores for free, keep the logic connectives, notebook symbols where they decode. Registers are data files under registers/; drop in a new one to add a voice, no code change."
