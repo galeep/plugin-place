@@ -5,10 +5,9 @@
 //      in the model's attention every turn (survives compaction, resists other
 //      plugins' competing style injections).
 
-const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { getDefaultMode, safeWriteFlag, readFlag, VALID_MODES } = require('./laconic-config');
+const { getDefaultMode, safeWriteFlag, readFlag, safeClearFlag, VALID_MODES } = require('./laconic-config');
 const registry = require('./laconic-registry');
 
 const claudeDir = process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), '.claude');
@@ -39,10 +38,10 @@ process.stdin.on('end', () => {
       else if (arg === 'off' || arg === 'stop' || arg === 'disable') mode = 'off';
       else if (VALID_MODES.includes(arg)) mode = arg;
       // Unknown arg leaves the flag untouched (no silent overwrite).
-      if (mode === 'off') { try { fs.unlinkSync(flagPath); } catch (e) {} }
+      if (mode === 'off') safeClearFlag(flagPath);
       else if (mode) safeWriteFlag(flagPath, mode);
     } else if (wantsOff) {
-      try { fs.unlinkSync(flagPath); } catch (e) {}
+      safeClearFlag(flagPath);
     }
 
     // Per-turn reinforcement from the active register. readFlag enforces

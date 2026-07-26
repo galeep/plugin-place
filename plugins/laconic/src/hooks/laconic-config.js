@@ -13,11 +13,23 @@
 //
 // The flag I/O below is a clean-room implementation of the symlink-safe,
 // size-capped, whitelist-validated pattern: refuse a symlink at the flag path
-// or its parent (unless the parent resolves to a dir the current user owns),
-// write atomically via temp+rename with O_NOFOLLOW and 0600, cap reads, and
-// reject any value not on VALID_MODES. Prevents a local attacker from pointing
-// the predictable flag path at a secret and having a reader slurp it into model
-// context.
+// itself, refuse a symlinked immediate parent unless it resolves to a dir the
+// current user owns, write atomically via temp+rename with O_NOFOLLOW and 0600,
+// cap reads, and reject any value not on VALID_MODES. Read, write and clear all
+// go through the same parent gate (safeRealDir).
+//
+// Scope of that guarantee, stated precisely because the previous wording
+// overclaimed it:
+//   - Only the IMMEDIATE parent is examined, and lstat only inspects a path's
+//     final component. A symlinked ANCESTOR above that parent is not detected,
+//     so the uid gate is bypassable by an attacker who controls one.
+//   - The ownership check applies only on the symlink branch. A plain parent
+//     directory is accepted without an ownership test, world-writable or not.
+//   - On Windows there is no O_NOFOLLOW and no uid check, so the lstat is the
+//     only guard and the TOCTOU window has no backstop.
+// Tracked in issue #55. What it does reliably buy: the read result is validated
+// against VALID_MODES before it is returned, so even a fully successful attack
+// yields a known short token rather than secret bytes reaching model context.
 
 const fs = require('fs');
 const path = require('path');
@@ -164,4 +176,18 @@ function readFlag(flagPath) {
   }
 }
 
-module.exports = { getDefaultMode, getConfigDir, getConfigPath, VALID_MODES, safeWriteFlag, readFlag, registryDefault };
+// Symlink-safe flag removal. Silent-fails (clearing is best-effort), but goes
+// through the same parent gate as write and read: callers previously used a raw
+// fs.unlinkSync(flagPath), which resolved nothing, so a hostile parent symlink
+// could redirect the delete at a file of the same name in the attacker's target
+// directory. Damage was bounded (the basename is fixed) but the gate was simply
+// absent on this path while present on the other two.
+function safeClearFlag(flagPath) {
+  try {
+    const realDir = safeRealDir(path.dirname(flagPath));
+    if (!realDir) return;
+    fs.unlinkSync(path.join(realDir, path.basename(flagPath)));
+  } catch (e) { /* silent — best-effort */ }
+}
+
+module.exports = { getDefaultMode, getConfigDir, getConfigPath, VALID_MODES, safeWriteFlag, readFlag, safeClearFlag, registryDefault };

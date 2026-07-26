@@ -5,10 +5,9 @@
 //   3. Emit the register body (filtered to the active level) as SessionStart
 //      context so the register anchors from turn one.
 
-const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { getDefaultMode, safeWriteFlag } = require('./laconic-config');
+const { getDefaultMode, safeWriteFlag, safeClearFlag } = require('./laconic-config');
 const registry = require('./laconic-registry');
 
 // Filter a register body to a single level: drop OTHER levels' intensity-table
@@ -31,7 +30,7 @@ const mode = getDefaultMode();
 
 // "off" — clear the flag, emit nothing substantive.
 if (mode === 'off') {
-  try { fs.unlinkSync(flagPath); } catch (e) {}
+  safeClearFlag(flagPath);
   process.stdout.write('OK');
   process.exit(0);
 }
