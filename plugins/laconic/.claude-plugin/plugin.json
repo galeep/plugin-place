@@ -1,6 +1,6 @@
 {
   "name": "laconic",
-  "description": "Laconic — a register engine for value-proportional communication. Ships the 'laconic' register: telegraphic but literate, a sharp colleague writing fast — drop the function words the reader rebuilds for free, keep the logic connectives, notebook symbols where they decode instantly. Registers are data files under registers/; drop in a new one to add a voice, no code change.",
+  "description": "Laconic: a register engine for value-proportional communication. Ships the 'laconic' register: elliptical but literate, a sharp colleague writing fast. Drop the function words the reader rebuilds for free, keep the logic connectives, notebook symbols where they decode instantly. Compresses the report, never the work behind it. Registers are data files under registers/; drop in a new one to add a voice, no code change.",
   "author": {
     "name": "Gale Fagan"
   },

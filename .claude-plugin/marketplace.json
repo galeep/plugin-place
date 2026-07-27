@@ -213,7 +213,7 @@
     },
     {
       "name": "laconic",
-      "description": "Laconic: a value-proportional communication register engine. Ships the 'laconic' register: telegraphic but literate, a sharp colleague writing fast. Drop the function words a reader restores for free, keep the logic connectives, notebook symbols where they decode. Registers are data files under registers/; drop in a new one to add a voice, no code change.",
+      "description": "Laconic: a value-proportional communication register engine. Ships the 'laconic' register: elliptical but literate, a sharp colleague writing fast. Drop the function words a reader restores for free, keep the logic connectives, notebook symbols where they decode. Compresses the report, never the work behind it. Registers are data files under registers/; drop in a new one to add a voice, no code change.",
       "source": "./plugins/laconic",
       "category": "productivity"
     }
