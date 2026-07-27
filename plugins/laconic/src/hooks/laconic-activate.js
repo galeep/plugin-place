@@ -55,7 +55,7 @@ if (resolved) {
     'keep the logic connectives, notebook symbols where they decode instantly. ' +
     'Full prose on high-value turns; compress only the final statement. ' +
     'Compresses the report, never the work: files read, checks run, claims verified, ' +
-    'scope finished are identical at every level. State which claims are verified ' +
+    'and scope finished are identical at every level. State which claims are verified ' +
     'and which are assumed.'
   );
 }
