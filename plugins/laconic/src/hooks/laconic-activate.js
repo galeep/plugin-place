@@ -51,8 +51,11 @@ if (resolved) {
   // Minimal anchor so the register still applies.
   process.stdout.write(
     'LACONIC REGISTER ACTIVE — level: ' + mode + '\n\n' +
-    'Telegraphic but literate: drop the function words a reader restores for free, ' +
+    'Elliptical but literate: drop the function words a reader restores for free, ' +
     'keep the logic connectives, notebook symbols where they decode instantly. ' +
-    'Full prose on high-value turns; compress only the final statement.'
+    'Full prose on high-value turns; compress only the final statement. ' +
+    'Compresses the report, never the work: files read, checks run, claims verified, ' +
+    'and scope finished are identical at every level. State which claims are verified ' +
+    'and which are assumed.'
   );
 }

@@ -1,10 +1,14 @@
 # laconic
 
 A value-proportional communication **register engine** for Claude Code. Ships
-one register, `laconic`: telegraphic but literate, the way a sharp colleague
+one register, `laconic`: elliptical but literate, the way a sharp colleague
 writes when busy. Drop the function words a reader restores for free, keep the
 logic connectives, use notebook symbols where they decode instantly. Full prose
 on high-value turns; compress only the final statement.
+
+It compresses the **report**, never the work behind it. Files read, checks
+actually run, claims verified, and scope finished are identical at every level,
+so `laconic-ultra` means denser output, not less effort.
 
 Unlike a single-voice style plugin, laconic is **data-driven**: a register is a
 pair of files, so adding a new voice needs no code change.
