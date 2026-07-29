@@ -1,6 +1,6 @@
 {
   "name": "claude-scientific-writer",
-  "version": "2.17.1",
+  "version": "2.19.0",
   "description": "K-Dense's scientific writing toolkit: 23 skills (papers, grants, posters, clinical reports, paper-2-web) plus a /scientific-writer-init command. NOTE: 22 of these 23 skills also appear in sci-* plugins; only paper-2-web is unique to the writer. To avoid duplicate skills, install EITHER claude-scientific-writer OR the relevant sci-* plugins, not both.",
   "author": {
     "name": "K-Dense Inc.",
