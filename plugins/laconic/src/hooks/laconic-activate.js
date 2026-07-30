@@ -12,12 +12,23 @@ const registry = require('./laconic-registry');
 
 // Filter a register body to a single level: drop OTHER levels' intensity-table
 // rows and "- level:" example lines, keep everything else.
-function filterToLevel(text, level) {
+//
+// Both matchers are gated on `tokens` — the level names the register actually
+// declares — because the shapes they look for are not unique to level lines.
+// `/^- (\S+?):\s/` alone also matches an ordinary prose bullet whose first word
+// ends in a colon, so `- **Keep**: logic connectives (because, so, but...)` in
+// registers/laconic/register.md read as "an example line for a level called
+// **Keep**" and was stripped at EVERY level. The register kept its "Drop" rule
+// and silently lost the "Keep" guardrail that balances it. Gating on the
+// declared tokens means a line is only treated as level-keyed when its key is
+// a real level, so prose falls through to the keep branch.
+function filterToLevel(text, level, tokens) {
+  const levels = new Set(Array.isArray(tokens) && tokens.length ? tokens : [level]);
   return text.split('\n').reduce((acc, line) => {
     const row = line.match(/^\|\s*\*\*(\S+?)\*\*\s*\|/);
-    if (row) { if (row[1] === level) acc.push(line); return acc; }
+    if (row && levels.has(row[1])) { if (row[1] === level) acc.push(line); return acc; }
     const ex = line.match(/^- (\S+?):\s/);
-    if (ex) { if (ex[1] === level) acc.push(line); return acc; }
+    if (ex && levels.has(ex[1])) { if (ex[1] === level) acc.push(line); return acc; }
     acc.push(line);
     return acc;
   }, []).join('\n');
@@ -44,7 +55,7 @@ if (resolved) {
   const { register, token } = resolved;
   process.stdout.write(
     register.statusline + ' REGISTER ACTIVE — level: ' + token + '\n\n' +
-    filterToLevel(register.body, token)
+    filterToLevel(register.body, token, register.tokens)
   );
 } else {
   // Registry unresolvable (e.g. a bare hook install with no registers/ dir).

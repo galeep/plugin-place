@@ -80,4 +80,22 @@ node -e '
   }
 ' "$bare/laconic-config.js" "$tmp" || fail "bare install: flag write/read round-trip broken"
 
-echo "smoke-laconic: PASS (7 checks)"
+# 8. The level filter keys on DECLARED level tokens, not on "bullet whose first
+# word ends in a colon". Regression guard: `- **Keep**: logic connectives
+# (because, so, but, unless, therefore)` in register.md matches that shape, so it
+# used to be filtered out as another level's example line at EVERY level — the
+# register shipped its "Drop" rule with the "Keep" guardrail silently missing,
+# and at laconic-lite/laconic-ultra the phrase "logic connectives" vanished from
+# the injected body entirely. Driven against the real register.md at all three
+# levels: the Keep rule must survive, and exactly the active level's example
+# lines must survive.
+for lvl in laconic-lite laconic laconic-ultra; do
+  ftmp="$tmp/filter-$lvl"; mkdir -p "$ftmp"
+  fout="$(CLAUDE_CONFIG_DIR="$ftmp" LACONIC_DEFAULT_MODE="$lvl" node "$H/laconic-activate.js")"
+  grep -q "logic connectives" <<<"$fout" || fail "level filter dropped the 'logic connectives' Keep rule at $lvl"
+  grep -q '^- \*\*Keep\*\*: logic connectives' <<<"$fout" || fail "level filter ate the '- **Keep**:' prose bullet at $lvl"
+  ex="$(grep -oE '^- laconic(-lite|-ultra)?:' <<<"$fout" | sort -u | tr -d '\n')"
+  [ "$ex" = "- $lvl:" ] || fail "example lines at $lvl should be only '- $lvl:', got [$ex]"
+done
+
+echo "smoke-laconic: PASS (8 checks)"
