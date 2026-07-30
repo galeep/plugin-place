@@ -22,7 +22,8 @@ survives context compaction and competing style injections from other plugins.
 
 The register content (rules, symbols, banned patterns, intensity levels, worked
 examples) is the single source of truth and lives in the register data file:
-`registers/laconic/register.md`. Read it for the full behavior. Summary:
+[`../../registers/laconic/register.md`](../../registers/laconic/register.md).
+Read it for the full behavior. Summary:
 
 - Elliptical on the function words a reader restores for free; full on the
   connectives that carry logic (because, so, but, unless, therefore).
