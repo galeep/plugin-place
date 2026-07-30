@@ -9,7 +9,12 @@
 //   1. LACONIC_DEFAULT_MODE env var
 //   2. $XDG_CONFIG_HOME/laconic/config.json (or ~/.config/laconic/config.json,
 //      or %APPDATA%\laconic\config.json) "defaultMode" field
-//   3. the default register's default token (falls back to 'laconic')
+//   3. the default register's `default` field, which may be a level token or
+//      'off' (falls back to 'laconic' only when there is no register data at all)
+//
+// The shipped register declares 'off', so nothing is injected until someone asks
+// for it. getActivationLevel() answers the different question of WHICH level an
+// explicit `/laconic` turns on.
 //
 // The flag I/O below is a clean-room implementation of the symlink-safe,
 // size-capped, whitelist-validated pattern: refuse a symlink at the flag path
@@ -36,7 +41,17 @@ const path = require('path');
 const os = require('os');
 const registry = require('./laconic-registry');
 
-const SPECIAL_MODES = ['off'];
+// Derived from the registry rather than restated, so a special a register may
+// declare as its `default` is always on this whitelist.
+const SPECIAL_MODES = registry.SPECIAL_DEFAULTS.slice();
+// Dual role, deliberately unchanged when the shipped register went opt-in:
+//   1. the default mode for a BARE hook install, where registers/ is absent and
+//      there is no register data to express an intent with;
+//   2. the id of the PREFERRED register in registryDefault() below.
+// Setting it to 'off' would break (2) — no register has the id 'off', so the
+// preference lookup would silently fall back to registers[0] — and (1) is the
+// one path where a level is the only useful answer. Whether the register
+// auto-activates is register data, so it lives in register.json's `default`.
 const FALLBACK_DEFAULT = 'laconic';
 // Derived from the registry's token bound rather than restated, so the two
 // cannot drift. If the read cap were ever the smaller of the two, a token the
@@ -90,6 +105,23 @@ function getDefaultMode() {
   } catch (e) { /* missing/invalid config — fall through */ }
 
   return registryDefault();
+}
+
+// The level an explicit activation should switch to: `/laconic` with no
+// argument, or the skill entering the register. Distinct from getDefaultMode(),
+// which answers "should this session start in the register at all" and may
+// legitimately answer 'off'. Asking for the register can never resolve to 'off',
+// so bare `/laconic` falls through to the register's own activationToken.
+function getActivationLevel() {
+  const mode = getDefaultMode();
+  if (mode !== 'off') return mode;
+  if (REG && REG.registers.length) {
+    const preferred = REG.registers.find(r => r.id === FALLBACK_DEFAULT) || REG.registers[0];
+    if (preferred.activationToken && VALID_MODES.includes(preferred.activationToken)) {
+      return preferred.activationToken;
+    }
+  }
+  return FALLBACK_DEFAULT;
 }
 
 // Resolve a flag dir that may itself be a symlink (legit: ~/.claude symlinked
@@ -202,4 +234,4 @@ function safeClearFlag(flagPath) {
   } catch (e) { /* silent — best-effort */ }
 }
 
-module.exports = { getDefaultMode, getConfigDir, getConfigPath, VALID_MODES, safeWriteFlag, readFlag, safeClearFlag, registryDefault };
+module.exports = { getDefaultMode, getActivationLevel, getConfigDir, getConfigPath, VALID_MODES, safeWriteFlag, readFlag, safeClearFlag, registryDefault };

@@ -19,8 +19,18 @@ done
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
 fail() { echo "smoke-laconic: FAIL — $1" >&2; exit 1; }
 
-# 1. SessionStart activates at the default level, writes the flag, emits the body.
-out="$(CLAUDE_CONFIG_DIR="$tmp" node "$H/laconic-activate.js")"
+# 1. Activation is opt-in: the shipped register declares `"default": "off"`, so a
+# SessionStart with nothing configured must inject NOTHING and write no flag.
+# Guards the data change end to end — `off` is not one of the register's level
+# tokens, so loadOne has to accept it as a special rather than falling through to
+# tokens[0], which would activate at whatever level is declared first.
+optout="$(CLAUDE_CONFIG_DIR="$tmp" node "$H/laconic-activate.js")"
+[ "$optout" = "OK" ] || fail "opt-in default leaked register text into SessionStart: [$optout]"
+[ -e "$tmp/.laconic-active" ] && fail "opt-in default still wrote an active flag"
+
+# 1b. With a level configured, SessionStart activates, writes the flag, emits the
+# body. Also sets up the active flag checks 2-6 read.
+out="$(CLAUDE_CONFIG_DIR="$tmp" LACONIC_DEFAULT_MODE=laconic node "$H/laconic-activate.js")"
 grep -q "LACONIC REGISTER ACTIVE — level: laconic" <<<"$out" || fail "activate header missing"
 [ "$(cat "$tmp/.laconic-active")" = "laconic" ] || fail "flag not written as 'laconic'"
 grep -q "sharp colleague" <<<"$out" || fail "register body not emitted"
@@ -53,7 +63,18 @@ printf '%s' '{"prompt":"stop laconic"}' | CLAUDE_CONFIG_DIR="$tmp" node "$H/laco
 empty="$(printf '%s' '{"prompt":"hello"}' | CLAUDE_CONFIG_DIR="$tmp" node "$H/laconic-mode-tracker.js")"
 [ -z "$empty" ] || fail "reminder emitted while register inactive"
 
-# 7. Bare hook install (no registers/ dir): the resolved default must still be
+# 7. Bare `/laconic`, from the cleared state left by checks 5-6, activates. This
+# is the path the README and the skill document, and the one the opt-in default
+# would otherwise have broken: resolving a bare `/laconic` through the SESSION
+# default would read 'off' and deactivate, so the documented activation command
+# would have been a no-op. It resolves through getActivationLevel() instead.
+printf '%s' '{"prompt":"/laconic"}' | CLAUDE_CONFIG_DIR="$tmp" node "$H/laconic-mode-tracker.js" >/dev/null
+[ "$(cat "$tmp/.laconic-active" 2>/dev/null)" = "laconic" ] || fail "bare /laconic did not activate at 'laconic'"
+# and it really does re-inject once active
+rein2="$(printf '%s' '{"prompt":"hello"}' | CLAUDE_CONFIG_DIR="$tmp" node "$H/laconic-mode-tracker.js")"
+grep -q "LACONIC REGISTER ACTIVE (laconic)" <<<"$rein2" || fail "no reinforcement after bare /laconic activation"
+
+# 8. Bare hook install (no registers/ dir): the resolved default must still be
 # on the whitelist. Checks 1-6 all run with registers/ present, so this path was
 # uncovered — and it is where the failure hid: registryDefault() returns
 # FALLBACK_DEFAULT unconditionally, so if VALID_MODES is built from an empty
@@ -85,7 +106,7 @@ node -e '
   }
 ' "$bare/laconic-config.js" "$tmp" || fail "bare install: flag write/read round-trip broken"
 
-# 8. The level filter keys on DECLARED level tokens, not on "bullet whose first
+# 9. The level filter keys on DECLARED level tokens, not on "bullet whose first
 # word ends in a colon". Regression guard: `- **Keep**: logic connectives
 # (because, so, but, unless, therefore)` in register.md matches that shape, so it
 # used to be filtered out as another level's example line at EVERY level — the
@@ -103,4 +124,4 @@ for lvl in laconic-lite laconic laconic-ultra; do
   [ "$ex" = "- $lvl:" ] || fail "example lines at $lvl should be only '- $lvl:', got [$ex]"
 done
 
-echo "smoke-laconic: PASS (8 checks)"
+echo "smoke-laconic: PASS (9 checks)"

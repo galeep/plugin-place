@@ -1,6 +1,6 @@
 {
   "id": "laconic",
-  "default": "laconic",
+  "default": "off",
   "statusline": "LACONIC",
   "aliases": { "notebook": "laconic" },
   "tokens": {

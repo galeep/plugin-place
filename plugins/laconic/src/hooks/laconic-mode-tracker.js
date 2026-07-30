@@ -7,7 +7,7 @@
 
 const path = require('path');
 const os = require('os');
-const { getDefaultMode, safeWriteFlag, readFlag, safeClearFlag, VALID_MODES } = require('./laconic-config');
+const { getActivationLevel, safeWriteFlag, readFlag, safeClearFlag, VALID_MODES } = require('./laconic-config');
 const registry = require('./laconic-registry');
 
 const claudeDir = process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), '.claude');
@@ -34,7 +34,11 @@ process.stdin.on('end', () => {
     if (prompt.startsWith('/laconic')) {
       const arg = prompt.split(' ')[1] || '';
       let mode = null;
-      if (!arg) mode = getDefaultMode();
+      // Bare `/laconic` asks to turn the register ON, so it resolves through
+      // getActivationLevel(), not getDefaultMode(). The shipped register's
+      // session default is 'off'; reading the session default here would make
+      // the documented activation command deactivate instead.
+      if (!arg) mode = getActivationLevel();
       else if (arg === 'off' || arg === 'stop' || arg === 'disable') mode = 'off';
       else if (VALID_MODES.includes(arg)) mode = arg;
       // Unknown arg leaves the flag untouched (no silent overwrite).

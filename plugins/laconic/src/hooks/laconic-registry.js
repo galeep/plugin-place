@@ -34,6 +34,15 @@ const TOKEN_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 // from this constant so the two cannot drift apart.
 const MAX_TOKEN_BYTES = 64;
 
+// Values a register's `default` field may hold that are NOT one of its own
+// level tokens. 'off' means "do not activate unless asked", which is how a
+// register ships opt-in: the SessionStart hook resolves the default, sees 'off',
+// and injects nothing. Declared here rather than in laconic-config.js because
+// loadOne has to accept the value before config ever sees it; config derives its
+// SPECIAL_MODES from this list so the two cannot drift (same reasoning as
+// MAX_FLAG_BYTES above). Registry cannot require config back: that is a cycle.
+const SPECIAL_DEFAULTS = ['off'];
+
 function tokenOk(t) {
   return typeof t === 'string' && TOKEN_RE.test(t) && Buffer.byteLength(t, 'utf8') <= MAX_TOKEN_BYTES;
 }
@@ -79,7 +88,22 @@ function loadOne(dir) {
   return {
     id: json.id,
     dir,
-    default: tokens.includes(json.default) ? json.default : tokens[0],
+    // The session default. May be a level token or a special ('off'). Without
+    // the SPECIAL_DEFAULTS arm, `"default": "off"` fell through to tokens[0] and
+    // the register activated at whatever level happened to be declared first:
+    // the opt-in request was accepted, written to disk, and silently inverted.
+    default: (tokens.includes(json.default) || SPECIAL_DEFAULTS.includes(json.default))
+      ? json.default
+      : tokens[0],
+    // The level an explicit, argument-less activation resolves to. Separate from
+    // `default` because a register whose session default is 'off' still needs a
+    // level to switch INTO when the user actually asks for it. Prefers a real
+    // declared default, else the register's eponymous token (the shape the README
+    // documents: id `myvoice` with tokens myvoice-lite/myvoice/myvoice-ultra),
+    // else the first token.
+    activationToken: tokens.includes(json.default)
+      ? json.default
+      : tokens.includes(json.id) ? json.id : tokens[0],
     statusline: typeof json.statusline === 'string' ? json.statusline : json.id.toUpperCase(),
     tokens,
     aliases,
@@ -161,4 +185,4 @@ function resolve(registry, mode) {
   return null;
 }
 
-module.exports = { loadRegisters, allTokens, allAliases, resolve, defaultRegistersDir, MAX_TOKEN_BYTES };
+module.exports = { loadRegisters, allTokens, allAliases, resolve, defaultRegistersDir, MAX_TOKEN_BYTES, SPECIAL_DEFAULTS };

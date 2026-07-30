@@ -15,6 +15,11 @@ pair of files, so adding a new voice needs no code change.
 
 ## Usage
 
+Activation is opt-in. The shipped register declares `"default": "off"`, so
+installing the plugin costs nothing until you ask for the register: SessionStart
+injects the register body only once a level is set, and the per-turn reminder
+only runs while it is active.
+
 ```
 /laconic                 # activate at the default level (laconic)
 /laconic laconic-lite    # articles + full grammar, just cut the filler
@@ -31,9 +36,11 @@ Set a session default without typing a command:
 
 Two hooks, wired in `.claude-plugin/plugin.json`:
 
-- **SessionStart** (`src/hooks/laconic-activate.js`) writes the active-register
-  flag at `$CLAUDE_CONFIG_DIR/.laconic-active` and injects the register body,
-  filtered to the active level, so the register anchors from turn one.
+- **SessionStart** (`src/hooks/laconic-activate.js`) resolves the default. If it
+  is `off` (the shipped value) it writes nothing and injects nothing. Otherwise it
+  writes the active-register flag at `$CLAUDE_CONFIG_DIR/.laconic-active` and
+  injects the register body, filtered to the active level, so the register anchors
+  from turn one.
 - **UserPromptSubmit** (`src/hooks/laconic-mode-tracker.js`) handles `/laconic`
   commands and re-injects a compressed per-turn reminder, so the register
   survives context compaction and other plugins' competing style injections.
@@ -57,6 +64,9 @@ A register is a directory under `registers/<id>/`:
     "reinforce": "MYVOICE ACTIVE ({token}). <per-turn reminder text>"
   }
   ```
+  `default` is the session default: a level token, or `off` to ship the register
+  opt-in. When it is `off`, an argument-less `/laconic` activates the token named
+  after the register's `id` (`myvoice` above), falling back to the first token.
 - `register.md` — the SessionStart body: opener, rules, an **Intensity** table
   whose rows are keyed `| **<token>** | ... |`, and per-level examples keyed
   `- <token>: ...`. The activate hook filters both to the active level.
@@ -72,10 +82,11 @@ by the `id` field, which may differ from the directory it lives in); set
 ```
 plugins/laconic/
   .claude-plugin/plugin.json      # hook wiring
+  commands/laconic.md             # /laconic [level|off]
   registers/laconic/
     register.json                 # machine fields
     register.md                   # register body (source of truth)
-  skills/laconic/SKILL.md         # /laconic command + doc
+  skills/laconic/SKILL.md         # register doc + summary
   src/hooks/
     laconic-registry.js           # data-driven register loader
     laconic-config.js             # flag I/O + VALID_MODES + default resolution

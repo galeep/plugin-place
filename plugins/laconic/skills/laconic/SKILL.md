@@ -15,7 +15,8 @@ it holds every response until switched off ("stop laconic" / "normal mode") or
 changed to another level.
 
 Activate or switch with `/laconic [laconic-lite|laconic|laconic-ultra|off]`.
-The SessionStart hook injects the full register at the configured default; the
+Activation is opt-in: the register ships with its default set to `off`, so the
+SessionStart hook injects nothing until a level is asked for. Once one is, the
 UserPromptSubmit hook re-injects a compressed reminder every turn so the register
 survives context compaction and competing style injections from other plugins.
 
