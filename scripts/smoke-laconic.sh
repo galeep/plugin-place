@@ -31,6 +31,11 @@ levels="$(grep -oE '\*\*laconic(-lite|-ultra)?\*\*' <<<"$out" | sort -u | tr '\n
 # 2. UserPromptSubmit re-injects the per-turn reminder from the active register.
 rein="$(printf '%s' '{"prompt":"hello"}' | CLAUDE_CONFIG_DIR="$tmp" node "$H/laconic-mode-tracker.js")"
 grep -q "LACONIC REGISTER ACTIVE (laconic)" <<<"$rein" || fail "per-turn reinforce missing"
+# The reinforce string is the only copy of the register that survives compaction,
+# so the safety carve-outs and the full boundary have to be in it, not only in
+# register.md.
+grep -q "security warnings" <<<"$rein" || fail "per-turn reinforce lost the Auto-Clarity carve-outs"
+grep -q "no dropped articles" <<<"$rein" || fail "per-turn reinforce lost the full shipped-artifact boundary"
 
 # 3. /laconic <level> switches the flag.
 printf '%s' '{"prompt":"/laconic laconic-ultra"}' | CLAUDE_CONFIG_DIR="$tmp" node "$H/laconic-mode-tracker.js" >/dev/null
