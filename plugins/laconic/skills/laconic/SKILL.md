@@ -15,13 +15,17 @@ it holds every response until switched off ("stop laconic" / "normal mode") or
 changed to another level.
 
 Activate or switch with `/laconic [laconic-lite|laconic|laconic-ultra|off]`.
-The SessionStart hook injects the full register at the configured default; the
-UserPromptSubmit hook re-injects a compressed reminder every turn so the register
-survives context compaction and competing style injections from other plugins.
+Activation is opt-in: the register ships with its default set to `off`, so a fresh
+install injects nothing. Once a level is set, it is recorded in a flag file and
+holds: the SessionStart hook injects the register body for that level on every
+later session, resume and compaction, and the UserPromptSubmit hook re-injects a
+compressed reminder every turn, so the register survives context compaction and
+competing style injections from other plugins. `/laconic off` ends it.
 
 The register content (rules, symbols, banned patterns, intensity levels, worked
 examples) is the single source of truth and lives in the register data file:
-`registers/laconic/register.md`. Read it for the full behavior. Summary:
+[`../../registers/laconic/register.md`](../../registers/laconic/register.md).
+Read it for the full behavior. Summary:
 
 - Elliptical on the function words a reader restores for free; full on the
   connectives that carry logic (because, so, but, unless, therefore).
