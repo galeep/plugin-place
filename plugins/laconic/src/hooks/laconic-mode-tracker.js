@@ -20,8 +20,12 @@ const flagPath = path.join(claudeDir, '.laconic-active');
 // and the next compaction read the default and switched the register back on. A
 // recorded special is a standing choice, and SessionStart honors it like any other.
 //
-// safeClearFlag remains the fallback for the one case where writing is impossible,
-// so a failed write cannot leave a stale level behind.
+// safeClearFlag is attempted as a fallback when the write does not land, but it is not
+// a guarantee: both calls go through the same safeRealDir parent gate, so on the
+// failure that gate causes (an unowned or hostile parent dir) neither one does
+// anything and a previously recorded level stays on disk. Nothing this hook can do
+// from inside that state fixes it; what it does buy is the ordinary case, where the
+// write fails for a reason the clear does not share.
 function setOff() {
   safeWriteFlag(flagPath, OFF_MODE);
   if (readFlag(flagPath) !== OFF_MODE) safeClearFlag(flagPath);

@@ -173,9 +173,13 @@ function registryDefault() {
   // reachable from here too: a register sorting earlier that claims one of this
   // register's tokens would have SessionStart write that token and then inject the
   // OTHER register's body under its own statusline, on a plain default install with
-  // no /laconic typed at all. A `default` naming a token the register lost is not a
-  // usable default, so fall through to the activation path, which picks among the
-  // tokens it still owns.
+  // no /laconic typed at all.
+  //
+  // A `default` naming a token the register lost is not a usable default, so this
+  // returns OFF_MODE and the session does not auto-activate. It does NOT silently
+  // pick a different level: choosing among the tokens the register still owns belongs
+  // to getActivationLevel(), which runs only when someone asks for the register, so
+  // an explicit /laconic still works on a colliding install.
   const def = preferred.default;
   if (SPECIAL_MODES.includes(def)) return def;
   if (REG.tokenMap[def] === preferred) return def;

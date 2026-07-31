@@ -14,9 +14,16 @@ const os = require('os');
 const { resolveDefaultMode, safeWriteFlag, readFlag, safeClearFlag, SPECIAL_MODES, debugOn, getRegistry } = require('./laconic-config');
 const registry = require('./laconic-registry');
 
-// "Is there a file here at all", answered without following a symlink and without
-// caring whether the contents are usable. Distinguishes "no flag" from "a flag
-// readFlag refused", which the resolution below has to treat differently.
+// "Is there a file here at all", answered without caring whether the contents are
+// usable. Distinguishes "no flag" from "a flag readFlag refused", which the resolution
+// below has to treat differently.
+//
+// lstat spares only the FINAL component: a symlink at the flag path itself is reported
+// as a symlink rather than followed, but symlinked ancestor directories are traversed
+// normally, and this does not go through the safeRealDir parent gate that read, write
+// and clear share. The answer is therefore weaker than readFlag's, which is acceptable
+// because it is only ever used to decide whether to LEAVE a file alone. Do not reuse it
+// for anything that acts on the path.
 function flagPresent(p) {
   try {
     fs.lstatSync(p);
