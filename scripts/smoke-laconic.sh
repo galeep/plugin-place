@@ -168,7 +168,10 @@ for lvl in laconic-lite laconic laconic-ultra; do
   ftmp="$tmp/filter-$lvl"; mkdir -p "$ftmp"
   fout="$(CLAUDE_CONFIG_DIR="$ftmp" LACONIC_DEFAULT_MODE="$lvl" node "$H/laconic-activate.js")"
   grep -q "logic connectives" <<<"$fout" || fail "level filter dropped the 'logic connectives' Keep rule at $lvl"
-  grep -q '^- \*\*Keep\*\*: logic connectives' <<<"$fout" || fail "level filter ate the '- **Keep**:' prose bullet at $lvl"
+  # Anchored on the bullet, not on its wording: the guard is that a prose bullet whose
+  # first word ends in a colon survives the filter, and pinning the sentence after the
+  # colon made rewording register.md fail the suite for no behavioral reason.
+  grep -q '^- \*\*Keep\*\*:' <<<"$fout" || fail "level filter ate the '- **Keep**:' prose bullet at $lvl"
   ex="$(grep -oE '^- laconic(-lite|-ultra)?:' <<<"$fout" | sort -u | tr -d '\n')"
   [ "$ex" = "- $lvl:" ] || fail "example lines at $lvl should be only '- $lvl:', got [$ex]"
 done

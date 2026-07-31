@@ -57,9 +57,17 @@ Two hooks, wired in `.claude-plugin/plugin.json`:
   commands and re-injects a compressed per-turn reminder, so the register
   survives context compaction and other plugins' competing style injections.
 
-Flag I/O (`src/hooks/laconic-config.js`) is symlink-safe, size-capped, and
-whitelist-validated: a flag that is missing, oversized, or a symlink pointing at
-a secret yields nothing rather than leaking bytes into model context.
+Flag I/O (`src/hooks/laconic-config.js`) is size-capped and whitelist-validated, and
+refuses a symlink at the flag path: a flag that is missing, oversized, or a symlink
+pointing at a secret yields nothing rather than leaking bytes into model context. What
+it reliably buys is that last part, since the read is validated against the whitelist
+before it is returned, so even a fully successful attack yields a known short token.
+
+The symlink handling is narrower than "symlink-safe" would suggest, and the file says
+so in its own header: only the flag's immediate parent is examined, so a symlinked
+ancestor above it is not detected; the ownership check applies only on the symlink
+branch, so a plain world-writable parent passes; and Windows has neither `O_NOFOLLOW`
+nor a uid check. Tracked in #55.
 
 ## Adding a register
 

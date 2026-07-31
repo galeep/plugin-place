@@ -248,7 +248,12 @@ function getActivationLevel() {
     // back to FALLBACK_DEFAULT was no fix at all, because FALLBACK_DEFAULT is the
     // contested token itself: the substitution has to come from this register's
     // own surviving tokens.
-    const owned = preferred.tokens.filter(t => REG.tokenMap[t] === preferred && !SPECIAL_MODES.includes(t));
+    // Ownership AND whitelist. Ownership alone is enough with matching modules, but
+    // VALID_MODES can be missing the token list entirely on a mismatched install (a
+    // laconic-registry.js without allTokens), and returning a token safeWriteFlag then
+    // refuses makes a bare /laconic no-op with nothing written and nothing said.
+    const owned = preferred.tokens.filter(t => REG.tokenMap[t] === preferred
+      && !SPECIAL_MODES.includes(t) && VALID_MODES.includes(t));
     if (owned.length) {
       if (owned.includes(preferred.activationToken)) return preferred.activationToken;
       if (debugOn()) {
@@ -331,6 +336,28 @@ function safeWriteFlag(flagPath, content) {
   } catch (e) { /* silent — best-effort */ }
 }
 
+// "Is there a flag file here at all", separate from whether its contents are usable.
+// SessionStart needs the difference: no flag means "no choice recorded, apply the
+// default", while a flag readFlag refuses is state this hook must leave alone rather
+// than overwrite or delete.
+//
+// Lives here, beside read/write/clear, and goes through the same safeRealDir parent
+// gate they do. It began as a bare lstatSync in laconic-activate.js, which made it the
+// one helper touching the flag path that skipped that gate: on a parent this module
+// refuses to act through, it answered "present" while every other operation was
+// refusing, so the diagnostic blamed the flag's contents for a parent-ownership
+// refusal. Same gate, same answer, one place.
+function flagPresent(flagPath) {
+  try {
+    const realDir = safeRealDir(path.dirname(flagPath));
+    if (!realDir) return false;
+    fs.lstatSync(path.join(realDir, path.basename(flagPath)));
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
 // Symlink-safe, size-capped, whitelist-validated flag read. Returns a valid
 // mode string or null on any anomaly.
 function readFlag(flagPath) {
@@ -381,4 +408,4 @@ function safeClearFlag(flagPath) {
   } catch (e) { /* silent — best-effort */ }
 }
 
-module.exports = { getDefaultMode, resolveDefaultMode, getActivationLevel, getConfigDir, getConfigPath, VALID_MODES, SPECIAL_MODES, OFF_MODE, debugOn, getRegistry, safeWriteFlag, readFlag, safeClearFlag, registryDefault };
+module.exports = { getDefaultMode, resolveDefaultMode, getActivationLevel, getConfigDir, getConfigPath, VALID_MODES, SPECIAL_MODES, OFF_MODE, debugOn, getRegistry, safeWriteFlag, readFlag, safeClearFlag, flagPresent, registryDefault };

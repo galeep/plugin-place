@@ -57,7 +57,7 @@ Selectivity rule: symbol where a reader decodes it instantly, spelled out where 
 - Bot vocab: delve, dive in, crucial, robust, comprehensive, testament, landscape.
 - Tricolons / three-part rhetorical stacks.
 
-Target voice: "Deploy failed ∵ KMS key missing ⇒ approval needed b/4 next rollout, ~2d wait."
+Target voice: "Deploy failed ∵ KMS key missing ⇒ approval needed before next rollout, ~2d wait."
 
 ## Intensity
 
