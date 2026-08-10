@@ -42,7 +42,7 @@ upstreams:
     author: "K-Dense Inc."
   caveman:
     submodule: vendor/caveman
-    pinned_tag: v1.9.1
+    pinned_tag: v1.10.0
     upstream_repo: JuliusBrussee/caveman
     license: MIT
     # caveman skill files carry no author; attribute the upstream author
