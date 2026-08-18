@@ -244,16 +244,47 @@ def build_agents_plugin(plugin, upstream, agents_table, catalog_by_slug):
     )
 
 
+def skill_owner_index() -> dict:
+    """{skill_name: sorted[plugin names]} across the whole built tree.
+
+    Cross-plugin duplication is NORMAL here and deliberately so: the writer
+    overlaps the sci-* plugins by design, and its description tells users to
+    install one or the other. So this is not a uniqueness gate — failing on
+    overlap would fail on ~20 intentional cases. It exists so that a NEW overlap
+    can be named at the human gate instead of arriving as an anonymous "+4
+    skills" line in a sync diff.
+    """
+    index = {}
+    if not PLUGINS_DIR.is_dir():
+        return index
+    for plugin_dir in sorted(PLUGINS_DIR.iterdir()):
+        skills = plugin_dir / "skills"
+        if not skills.is_dir():
+            continue
+        for skill in sorted(skills.iterdir()):
+            if skill.is_dir() and (skill / "SKILL.md").exists():
+                index.setdefault(skill.name, []).append(plugin_dir.name)
+    return {k: sorted(v) for k, v in index.items()}
+
+
 def drop_non_skill_containers(skills_root_dir: Path) -> None:
     """Remove directories directly under skills/ that are not themselves skills.
 
     Claude Code expects skills exactly one level deep under skills/, each with a
-    SKILL.md at its root. Upstreams put other things there: K-Dense's writer
-    ships `document-skills/` as a container holding 4 sub-skills (those are
-    split into their own `built` plugin, see kdense-document-skills), and
-    caveman v2.1.0 added `skills/generated/`, a build artifact holding per-agent
-    pack.json files for aider/codex/gemini/hermes/opencode. Either way a
-    SKILL.md-less directory fails validate-plugin.sh, so drop it.
+    SKILL.md at its root, and a SKILL.md-less directory fails validate-plugin.sh.
+
+    Currently live for caveman's `skills/generated/` (a build artifact of
+    per-agent pack.json files).
+
+    HISTORICAL, and a caution: this also used to catch K-Dense's writer, which
+    shipped `document-skills/` as a container holding docx/pdf/pptx/xlsx. Those
+    four have a designated home in the `kdense-document-skills` built plugin, and
+    dropping the container kept them out of the writer — but only INCIDENTALLY,
+    because they happened to be nested. Writer v2.21.0 flattened them to
+    top-level, so this helper stopped touching them and the writer silently began
+    shipping all four. Nothing failed; the ownership intent just evaporated. An
+    invariant enforced as a side effect of an unrelated mechanism is not
+    enforced. See skill_owner_index() for the reporting that now surfaces it.
 
     Only DIRECTORIES are dropped. Loose files under skills/ (caveman v2.1.0 also
     added compile.mjs, registry.json, verbs-gate.mjs, native-core.md,
@@ -514,7 +545,7 @@ def apply_downstream_patches(plugin_name: str, required: bool = False) -> int:
 
     plugin_dir = PLUGINS_DIR / plugin_name
     applied = 0
-    for i, edit in enumerate(spec["edits"]):
+    for i, edit in enumerate(spec["edits"], 1):  # 1-based: the message names an edit a human counts in the patch file
         for key in ("file", "find", "replace"):
             if key not in edit:
                 raise SystemExit(
@@ -743,6 +774,17 @@ def main():
             pass
         else:
             raise SystemExit(f"unknown plugin kind: {kind!r}")
+
+    # Overlap census. Not a gate — see skill_owner_index(). Printed so a local
+    # build shows the shape, and consumed by the sync workflow, which names the
+    # NEWLY overlapping skills in the PR body where a human actually reads.
+    shared = {k: v for k, v in skill_owner_index().items() if len(v) > 1}
+    if shared:
+        print(
+            f"render.py: {len(shared)} skill name(s) appear in more than one plugin "
+            f"(expected here — the writer overlaps sci-* by design)",
+            file=sys.stderr,
+        )
 
     # Apply downstream patches AFTER every plugin tree is in place. The tree was
     # just recopied pristine from upstream (clean_built_plugins wiped it first),

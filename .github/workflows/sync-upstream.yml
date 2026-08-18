@@ -31,6 +31,7 @@ concurrency:
 permissions:
   contents: write
   pull-requests: write
+  issues: write   # blocked-sync report (see "Report a blocked sync" below)
 
 jobs:
   sync:
@@ -222,11 +223,80 @@ jobs:
           python3 scripts/license-fingerprint.py --write
 
       - name: Rebuild plugins
+        id: rebuild
         if: steps.check.outputs.changed == '1'
-        run: bash scripts/build.sh
+        # continue-on-error, deliberately. build.sh aborts when a downstream
+        # patch anchor no longer matches upstream, which is correct — it stops an
+        # unpatched plugin from publishing. But letting that abort fail the JOB
+        # made every caveman release produce a red nightly and, worse, blocked
+        # the sync for EVERY OTHER upstream too: one drifted anchor in caveman
+        # stopped the writer from ever being proposed. That happened twice (#66,
+        # #73).
+        #
+        # So the failure is captured rather than fatal. No PR is opened (the tree
+        # was never rebuilt, so there is nothing safe to propose), and the run
+        # files an issue naming what needs re-anchoring. The invariant is intact:
+        # a drifted patch still never publishes. What changes is that it no
+        # longer presents as an infrastructure outage.
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          bash scripts/build.sh 2>&1 | tee /tmp/build.log
+
+      - name: Report a blocked sync
+        if: steps.check.outputs.changed == '1' && steps.rebuild.outcome != 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PINS: ${{ steps.check.outputs.pins_changed }}
+        # Files/updates ONE issue rather than opening a PR whose CI would be red.
+        # A failing PR is the thing this is meant to stop producing; an issue is
+        # persistent, assignable, and does not pretend to be a mergeable change.
+        #
+        # No `set -e`: a gh outage must not resurrect the job failure this step
+        # exists to replace. Every failure path below warns and exits 0.
+        run: |
+          set -uo pipefail
+          TITLE="sync blocked: downstream patches need re-anchoring"
+          LOG="$(tail -n 40 /tmp/build.log 2>/dev/null || echo '(no build log captured)')"
+          {
+            echo "### Sync blocked"
+            echo
+            echo "Upstream moved, but \`scripts/build.sh\` could not rebuild, so no sync PR was opened."
+            echo "A downstream patch anchor in \`patches/\` most likely no longer matches upstream."
+            echo
+            echo "Pins that moved:"
+            echo '```'
+            printf '%b' "$PINS"
+            echo '```'
+            echo
+            echo "Build tail:"
+            echo '```'
+            echo "$LOG"
+            echo '```'
+          } > /tmp/report.md
+          cat /tmp/report.md >> "$GITHUB_STEP_SUMMARY"
+
+          RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          echo "" >> /tmp/report.md
+          echo "Run: ${RUN_URL}" >> /tmp/report.md
+
+          existing="$(gh issue list --state open --limit 50 \
+                        --json number,title \
+                        --jq '[.[] | select(.title == "'"$TITLE"'")] | .[0].number // empty' 2>/dev/null)"
+          if [ -n "$existing" ]; then
+            # One issue, appended to. A new issue per nightly would recreate the
+            # PR-spam problem the dedupe gate below exists to prevent.
+            gh issue comment "$existing" --body-file /tmp/report.md \
+              || echo "::warning::could not comment on issue #${existing}; see the job summary"
+            echo "::warning::sync blocked; updated issue #${existing}"
+          else
+            gh issue create --title "$TITLE" --body-file /tmp/report.md \
+              || echo "::warning::could not create the blocked-sync issue; see the job summary"
+            echo "::warning::sync blocked; opened an issue"
+          fi
 
       - name: Validate every plugin
-        if: steps.check.outputs.changed == '1'
+        if: steps.check.outputs.changed == '1' && steps.rebuild.outcome == 'success'
         run: |
           set -euo pipefail
           fails=0
@@ -243,7 +313,7 @@ jobs:
           fi
 
       - name: Smoke-test patched caveman hook
-        if: steps.check.outputs.changed == '1'
+        if: steps.check.outputs.changed == '1' && steps.rebuild.outcome == 'success'
         # Proves the patched per-turn hook still EMITS the allocation framing at
         # runtime, not merely that the patch anchor matched. Catches an upstream
         # bump that keeps the anchor but breaks the hook (the silent-injection
@@ -252,7 +322,7 @@ jobs:
 
       - name: Build review summary
         id: summary
-        if: steps.check.outputs.changed == '1'
+        if: steps.check.outputs.changed == '1' && steps.rebuild.outcome == 'success'
         run: |
           set -euo pipefail
           # Stage the regenerated tree so added/removed files show in the diff
@@ -262,7 +332,7 @@ jobs:
           # any that look reassigned to a different plugin, and where the file
           # weight sits. A python failure aborts the step under `set -e`.
           python3 <<'PY'
-          import collections, os, re, subprocess
+          import collections, glob, os, re, subprocess
 
           diff = subprocess.run(
               ["git", "diff", "--cached", "--name-status", "--no-renames", "HEAD"],
@@ -326,6 +396,32 @@ jobs:
               out.append(f"**⚠ Possible plugin reassignment:** {mv}")
           else:
               out.append("**Possible plugin reassignment:** none")
+          # Which ADDED skills already have a home in another plugin. Overlap is
+          # normal here (the writer overlaps sci-* by design, ~20 cases), so this
+          # is not a gate — but a NEW overlap must be named rather than folded
+          # into an anonymous "+N skills" line. Writer v2.21.0 is the motivating
+          # case: it flattened document-skills/ to top level, so the writer began
+          # shipping docx/pdf/pptx/xlsx, which kdense-document-skills owns. The
+          # build did not fail and the old summary would have said only
+          # "Skills added (4)".
+          owners = collections.defaultdict(set)
+          for skills_dir in sorted(glob.glob("plugins/*/skills/*/SKILL.md")):
+              parts = skills_dir.split("/")
+              owners[parts[3]].add(parts[1])
+          new_overlaps = sorted(
+              (skill, plugin, sorted(owners[skill] - {plugin}))
+              for plugin, skill in added
+              if len(owners.get(skill, ())) > 1
+          )
+          if new_overlaps:
+              out.append(
+                  "**\u26a0 Added skills that already exist elsewhere:** "
+                  + "; ".join(
+                      f"`{s}` into {p} (also in {', '.join(o)})"
+                      for s, p, o in new_overlaps
+                  )
+                  + " \u2014 confirm which plugin should own each before merging."
+              )
           out.append(f"**Skills modified:** {len(modified)}")
           out.append(
               f"**File breakdown:** {cat['mechanical']} mechanical, "
@@ -341,7 +437,7 @@ jobs:
 
       - name: Skip if an identical sync proposal is already open
         id: dedupe
-        if: steps.check.outputs.changed == '1'
+        if: steps.check.outputs.changed == '1' && steps.rebuild.outcome == 'success'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -440,7 +536,7 @@ jobs:
           fi
 
       - name: Open pull request
-        if: steps.check.outputs.changed == '1' && steps.dedupe.outputs.proceed == '1'
+        if: steps.check.outputs.changed == '1' && steps.rebuild.outcome == 'success' && steps.dedupe.outputs.proceed == '1'
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1  # v8.1.1
         with:
           branch: sync/upstream-${{ github.run_id }}
