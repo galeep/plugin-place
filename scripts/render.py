@@ -562,8 +562,46 @@ def write_provenance_sidecar(config: dict) -> None:
     write_json(REPO_ROOT / ".claude-plugin" / "provenance.json", upstreams)
 
 
+def warn_license_drift(config) -> None:
+    """Advisory notice when an upstream's licensing documents no longer match the
+    fingerprint recorded in plugins.yaml.
+
+    NOT the patch-anchor idiom, deliberately. A drifted anchor aborts the build
+    because the OUTPUT would be wrong; a changed license leaves the output fine
+    and a DECLARATION possibly stale. Aborting here would let any upstream
+    copyright-year edit turn the nightly red and suppress that day's sync PR —
+    trading a silent relicense for a silent sync outage, the worse failure for a
+    workflow whose job is telling a human that third-party code moved.
+
+    The durable signal is the sync PR body (see .github/workflows/sync-upstream.yml);
+    this is the local-build echo of it. Run `scripts/license-fingerprint.py --write`
+    to record reviewed terms.
+    """
+    stale = [
+        (name, up.get("license_fingerprint"), licenses.fingerprint_docs(REPO_ROOT / up["submodule"]))
+        for name, up in config["upstreams"].items()
+    ]
+    stale = [row for row in stale if row[1] != row[2]]
+    if not stale:
+        return
+    for name, recorded, actual in stale:
+        was = "unrecorded" if recorded is None else recorded[:12]
+        # `::warning::` renders as an annotation in GitHub Actions and as plain
+        # text everywhere else, so one line serves both.
+        print(
+            f"::warning::license drift: upstream {name!r} licensing documents "
+            f"changed ({was} -> {actual[:12]}). Review terms, then run "
+            f"scripts/license-fingerprint.py --write",
+            file=sys.stderr,
+        )
+
+
 def main():
     config = yaml.safe_load(PLUGINS_YAML.read_text())
+
+    # Advisory only — never aborts. See warn_license_drift's docstring for why
+    # this does not use the fail-closed idiom the patch anchors use.
+    warn_license_drift(config)
 
     # Load locked assignment tables and run the coverage gate BEFORE building
     # anything: every present upstream item must map to a declared plugin, and

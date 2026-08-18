@@ -46,3 +46,98 @@ def test_resolve_mixed():
 
 def test_resolve_empty():
     assert lic.resolve_plugin_license([]) == "Unknown"
+
+
+# ── License-drift tripwire ────────────────────────────────────────────────
+
+def _write(root, name, text):
+    p = root / name
+    p.write_text(text)
+    return p
+
+
+def test_license_docs_matches_the_real_upstream_filenames(tmp_path):
+    # Every spelling seen across the four pinned upstreams, plus the two that a
+    # naive `licen[sc]e` pattern misses: LICENSING.md (which carried caveman's
+    # per-directory split) and LICENSE.BSL.
+    for name in ("LICENSE", "LICENSE.md", "LICENCE", "LICENSE.BSL",
+                 "LICENSING.md", "COPYING", "NOTICE"):
+        _write(tmp_path, name, "x")
+    found = [p.name for p in lic.license_docs(tmp_path)]
+    assert "LICENSING.md" in found
+    assert "LICENSE.BSL" in found
+    assert len(found) == 7
+
+
+def test_license_docs_ignores_unrelated_files_and_dirs(tmp_path):
+    # Source files whose names merely start with "licen" must not be treated as
+    # licensing documents: their churn would raise drift reports that are always
+    # noise, which is how a notification gate gets trained into background hum.
+    _write(tmp_path, "LICENSE", "x")
+    _write(tmp_path, "README.md", "x")
+    _write(tmp_path, "licensed_under.py", "x")  # suffix without a separator
+    _write(tmp_path, "licenses.py", "x")        # plural stem, ordinary module
+    (tmp_path / "licenses").mkdir()             # a directory, not a file
+    assert [p.name for p in lic.license_docs(tmp_path)] == ["LICENSE"]
+
+
+def test_license_docs_keeps_hyphen_and_dot_suffixed_documents(tmp_path):
+    # The separator rule must not cost real documents.
+    for name in ("LICENSE-MIT", "LICENSE.BSL", "COPYING.LESSER"):
+        _write(tmp_path, name, "x")
+    assert len(lic.license_docs(tmp_path)) == 3
+
+
+def test_license_docs_missing_root_is_empty_not_an_error(tmp_path):
+    assert lic.license_docs(tmp_path / "nope") == []
+
+
+def test_fingerprint_is_stable_and_order_independent(tmp_path):
+    _write(tmp_path, "LICENSE", "MIT text")
+    _write(tmp_path, "NOTICE", "notice text")
+    assert lic.fingerprint_docs(tmp_path) == lic.fingerprint_docs(tmp_path)
+
+
+def test_fingerprint_moves_when_contents_change(tmp_path):
+    _write(tmp_path, "LICENSE", "MIT text")
+    before = lic.fingerprint_docs(tmp_path)
+    _write(tmp_path, "LICENSE", "MIT text, amended")
+    assert lic.fingerprint_docs(tmp_path) != before
+
+
+def test_fingerprint_moves_when_a_document_is_added(tmp_path):
+    # The caveman v2.1.0 case: LICENSE was edited AND LICENSE.BSL/LICENSING.md
+    # appeared. A contents-only hash of known files would understate that, so
+    # adding a document alone must move the fingerprint.
+    _write(tmp_path, "LICENSE", "MIT text")
+    before = lic.fingerprint_docs(tmp_path)
+    _write(tmp_path, "LICENSE.BSL", "BSL text")
+    assert lic.fingerprint_docs(tmp_path) != before
+
+
+def test_fingerprint_moves_when_a_document_is_removed(tmp_path):
+    _write(tmp_path, "LICENSE", "MIT text")
+    _write(tmp_path, "LICENSE.BSL", "BSL text")
+    before = lic.fingerprint_docs(tmp_path)
+    (tmp_path / "LICENSE.BSL").unlink()
+    assert lic.fingerprint_docs(tmp_path) != before
+
+
+def test_fingerprint_distinguishes_name_from_content_boundary(tmp_path):
+    # Without a separator between name and bytes, ("AB", "C") and ("A", "BC")
+    # would hash identically. Guard the framing.
+    a = tmp_path / "a"
+    b = tmp_path / "b"
+    a.mkdir()
+    b.mkdir()
+    _write(a, "LICENSE", "AB")
+    _write(b, "LICENSE", "A")          # same doc name, different split
+    _write(b, "LICENSE.md", "B")
+    assert lic.fingerprint_docs(a) != lic.fingerprint_docs(b)
+
+
+def test_empty_root_fingerprint_differs_from_populated(tmp_path):
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    _write(tmp_path, "LICENSE", "MIT text")
+    assert lic.fingerprint_docs(empty) != lic.fingerprint_docs(tmp_path)
