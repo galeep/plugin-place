@@ -190,6 +190,37 @@ jobs:
           p.write_text(src)
           PY
 
+      - name: Record upstream license drift
+        id: licenses
+        if: steps.check.outputs.changed == '1'
+        # Advisory, never fatal. An upstream relicense used to move through this
+        # workflow silently: the review summary below counts
+        # `plugins/<name>/LICENSE` as one anonymous increment to its
+        # "asset/other" tally, so caveman's v2.1.0 MIT -> split MIT + BSL-1.1
+        # change was indistinguishable from a README typo fix.
+        #
+        # Deliberately NOT the patch-anchor abort idiom: hard-failing on a
+        # license edit would suppress that day's sync PR entirely, trading a
+        # silent relicense for a silent sync outage — the worse failure for a
+        # workflow whose whole job is telling a human that third-party code
+        # moved. So the report is routed into the PR body instead, where the
+        # human gate already reads. A warning that only lands in a green cron's
+        # log is unobservable, the same trap the dedupe gate documents below.
+        #
+        # --check runs BEFORE --write: the report must describe drift against
+        # the reviewed pin, and --write would erase that comparison.
+        run: |
+          set -euo pipefail
+          {
+            echo "report<<LICENSE_EOF"
+            python3 scripts/license-fingerprint.py --check
+            echo "LICENSE_EOF"
+          } >> "$GITHUB_OUTPUT"
+          # Record the new fingerprints so the PR carries them and merging
+          # returns the repo to a clean state; the plugins.yaml diff shows the
+          # change alongside the report above.
+          python3 scripts/license-fingerprint.py --write
+
       - name: Rebuild plugins
         if: steps.check.outputs.changed == '1'
         run: bash scripts/build.sh
@@ -429,6 +460,10 @@ jobs:
 
             ${{ steps.summary.outputs.review }}
 
+            ## License review
+
+            ${{ steps.licenses.outputs.report }}
+
             ## What was regenerated
 
             All `plugins/sci-*` and `plugins/kdense-*` directories were
@@ -441,6 +476,8 @@ jobs:
             - [ ] Review skill additions/removals in the diff
             - [ ] Spot-check that no skill changed plugin assignment unexpectedly
             - [ ] Verify upstream release notes (linked above) don't include breaking changes
+            - [ ] Read the License review section; if it reports drift, confirm the
+                  terms still permit vendoring before merging
             - [ ] Validation passed (CI check below)
           labels: |
             upstream-sync
