@@ -230,7 +230,7 @@ if (process.env.CLAUDE_PLUGIN_ROOT) {
 }
 skillCandidates.push(
   path.join(__dirname, '..', '..', 'skills', 'caveman', 'SKILL.md'),
-  path.join(__dirname, '..', '..', 'skills', 'caveman', 'SKILL.md')
+  path.join(__dirname, '..', 'skills', 'caveman', 'SKILL.md')
 );
 
 let skillContent = '';

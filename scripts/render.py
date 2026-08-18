@@ -265,8 +265,45 @@ def drop_non_skill_containers(skills_root_dir: Path) -> None:
     for container in sorted(skills_root_dir.iterdir()):
         if not container.is_dir() or (container / "SKILL.md").exists():
             continue
-        print(f"  dropping container directory: {container.name}/", file=sys.stderr)
+        # Name the nested skills too. Logging only the container makes a drop of
+        # four real sub-skills look identical to a drop of an empty artifact dir,
+        # and the whole point of the line is that a human can see what left.
+        nested = sorted(
+            d.name for d in container.iterdir() if d.is_dir() and (d / "SKILL.md").exists()
+        )
+        detail = f" (contained skills: {', '.join(nested)})" if nested else ""
+        print(
+            f"  dropping container directory: {container.name}/{detail}", file=sys.stderr
+        )
         shutil.rmtree(container)
+
+
+def drop_non_agent_markdown(agents_dir: Path) -> None:
+    """Remove root-level .md files in agents/ that carry no YAML frontmatter.
+
+    Claude Code reads plugin-root `agents/*.md` as subagent DEFINITIONS, and a
+    definition is identified by its frontmatter (name/description). caveman
+    v2.1.0's new agents/ tree ships AGENTS.md and CLAUDE.md — convention
+    documents written FOR agents, not definitions OF them — beside the three
+    real cavecrew-*.md agents. Left in place they are offered to the model as
+    nameless agents. Sibling plugins put only frontmattered files here.
+
+    Root level only, and .md only: agents.json, profiles/ and the delegate/
+    scripts are not agent definitions and are left alone.
+    """
+    if not agents_dir.is_dir():
+        return
+    for entry in sorted(agents_dir.iterdir()):
+        if not entry.is_file() or entry.suffix != ".md":
+            continue
+        head, _ = fm.split_frontmatter(entry.read_text())
+        if head is not None:
+            continue
+        print(
+            f"  dropping non-agent markdown: agents/{entry.name} (no frontmatter)",
+            file=sys.stderr,
+        )
+        entry.unlink()
 
 
 def build_vendored_plugin(plugin: dict, upstream: dict) -> None:
@@ -299,11 +336,20 @@ def build_vendored_plugin(plugin: dict, upstream: dict) -> None:
     description = plugin["description"]
     version = "0.1.0"
     if upstream_marketplace.exists():
+        # Narrow, and it says what it swallowed. A bare `except Exception: pass`
+        # here was the one silent-failure shape left on a surface the rest of
+        # this file makes fail-loud, and future readers copy what they see.
+        # Not fatal: a malformed upstream marketplace.json only costs the version
+        # backfill, and the "0.1.0" default is correct behaviour, not a guess.
         try:
             data = json.loads(upstream_marketplace.read_text())
             version = data.get("metadata", {}).get("version", version)
-        except Exception:
-            pass
+        except (json.JSONDecodeError, OSError) as e:
+            print(
+                f"WARN: {name}: could not read upstream marketplace.json "
+                f"({type(e).__name__}: {e}); keeping version {version!r}",
+                file=sys.stderr,
+            )
 
     write_json(
         plugin_dir / ".claude-plugin" / "plugin.json",
@@ -358,14 +404,20 @@ def build_vendored_whole_plugin(plugin: dict, upstream: dict) -> None:
     plugin_dir.mkdir(parents=True, exist_ok=True)
 
     copy_dirs = ("skills", "commands", "agents", "hooks", "src", "assets")
-    # LICENSING.md / LICENSE.BSL: caveman v2.1.0 relicensed to a split model and
-    # its root LICENSE now opens with a scope note naming both files. None of the
-    # BSL-1.1 directories that note lists (engine/, proxy/, cacheengine/,
-    # rewriter/, browse/, mcp/, shrink/, cavemem Go core, shared/platform/) are in
-    # copy_dirs, so what we vendor is MIT — but shipping the scope note without
-    # the documents it points at leaves a dangling reference in a license file.
-    # Copied when present; absent upstream (or on an older pin) they are skipped.
-    copy_files = ("LICENSE", "LICENSING.md", "LICENSE.BSL")
+    # Licensing documents come from licenses.license_docs — the SAME matcher the
+    # fingerprint tripwire uses — rather than a hardcoded tuple. Two independent
+    # lists of "what counts as a licensing document" drift apart silently: an
+    # upstream adding NOTICE would move the fingerprint, earn human review, merge
+    # — and still not be vendored, leaving the scope note in LICENSE pointing at
+    # a document we do not ship. That is the exact dangling reference this copy
+    # exists to prevent.
+    #
+    # caveman v2.1.0 is why the copy exists at all: it relicensed to a split
+    # model and its root LICENSE now opens with a scope note naming LICENSING.md
+    # and LICENSE.BSL. None of the BSL-1.1 directories that note lists (engine/,
+    # proxy/, cacheengine/, rewriter/, browse/, mcp/, shrink/, cavemem Go core,
+    # shared/platform/) are in copy_dirs, so what we vendor is MIT.
+    copy_files = tuple(p.name for p in (licenses.license_docs(src_root) or ()))
     for d in copy_dirs:
         s = src_root / d
         if s.is_dir():
@@ -378,6 +430,7 @@ def build_vendored_whole_plugin(plugin: dict, upstream: dict) -> None:
     # Same non-skill container drop the `vendored` path does: caveman v2.1.0
     # added skills/generated/, which has no SKILL.md and fails validation.
     drop_non_skill_containers(plugin_dir / "skills")
+    drop_non_agent_markdown(plugin_dir / "agents")
 
     # Inject the `via galeep` vendor author into every copied SKILL.md. Runs
     # before apply_downstream_patches (in main); patch anchors live in hook src/
@@ -504,10 +557,23 @@ def apply_downstream_patches(plugin_name: str, required: bool = False) -> int:
                 f"(upstream likely changed it). Re-derive the patch. "
                 f"Anchor starts: {find[:70]!r}"
             )
-        if occurrences > 1 and not edit.get("all", False):
+        all_flag = edit.get("all", False)
+        if not isinstance(all_flag, bool):
+            # find/replace are type-checked; `all` was not. YAML/JSON "false" is
+            # a non-empty string and therefore truthy, so `"all": "false"` would
+            # mean its exact opposite and silently retire the ambiguity guard.
+            raise SystemExit(
+                f'patch {plugin_name} edit #{i}: "all" must be a boolean, got '
+                f"{type(all_flag).__name__} ({all_flag!r})"
+            )
+        if occurrences > 1 and not all_flag:
             raise SystemExit(
                 f"patch {plugin_name} edit #{i}: AMBIGUOUS — anchor occurs "
-                f'{occurrences}x in {rel}; make it unique or set "all": true. '
+                f"{occurrences}x in {rel}. Extend the anchor with surrounding "
+                f"context so it matches exactly once. "
+                f'("all": true replaces every occurrence and permanently retires '
+                f"this edit's ambiguity detection — only for an edit that genuinely "
+                f"must hit every match.) "
                 f"Anchor starts: {find[:70]!r}"
             )
         target.write_text(content.replace(find, replace))
@@ -577,15 +643,36 @@ def warn_license_drift(config) -> None:
     this is the local-build echo of it. Run `scripts/license-fingerprint.py --write`
     to record reviewed terms.
     """
-    stale = [
+    rows = [
         (name, up.get("license_fingerprint"), licenses.fingerprint_docs(REPO_ROOT / up["submodule"]))
         for name, up in config["upstreams"].items()
     ]
-    stale = [row for row in stale if row[1] != row[2]]
+    # An unreadable submodule (`actual is None`) is unverifiable, not drifted.
+    # Reporting it as drift would push a reader toward `--write`, which would
+    # record the empty-tree hash and disarm the tripwire permanently.
+    for name, _, actual in rows:
+        if actual is None:
+            print(
+                f"::warning::license check skipped for upstream {name!r}: submodule "
+                f"not checked out (run: git submodule update --init)",
+                file=sys.stderr,
+            )
+    stale = [r for r in rows if r[2] is not None and r[1] != r[2]]
     if not stale:
         return
     for name, recorded, actual in stale:
-        was = "unrecorded" if recorded is None else recorded[:12]
+        # str() before slicing, deliberately. plugins.yaml is hand-editable and
+        # YAML types an unquoted 1234... as an int, which is not subscriptable;
+        # slicing it raised TypeError and aborted the whole build — from the one
+        # code path whose contract is that it never aborts. Under the sync
+        # workflow's `set -euo pipefail` that killed the job, so no sync PR
+        # opened: precisely the silent sync outage this fail-open design exists
+        # to prevent.
+        was = (
+            "unrecorded"
+            if recorded is None
+            else str(recorded)[:12] + ("" if licenses.is_fingerprint(recorded) else " (malformed)")
+        )
         # `::warning::` renders as an annotation in GitHub Actions and as plain
         # text everywhere else, so one line serves both.
         print(

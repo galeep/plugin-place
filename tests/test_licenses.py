@@ -88,8 +88,45 @@ def test_license_docs_keeps_hyphen_and_dot_suffixed_documents(tmp_path):
     assert len(lic.license_docs(tmp_path)) == 3
 
 
-def test_license_docs_missing_root_is_empty_not_an_error(tmp_path):
-    assert lic.license_docs(tmp_path / "nope") == []
+def test_license_docs_missing_root_is_none_not_empty(tmp_path):
+    # None means "cannot verify" and must never be recorded as a fingerprint.
+    assert lic.license_docs(tmp_path / "nope") is None
+    assert lic.fingerprint_docs(tmp_path / "nope") is None
+
+
+def test_license_docs_empty_dir_is_none(tmp_path):
+    # THE fresh-clone case, and the one a missing-directory check sails past:
+    # `git clone` without --recurse-submodules materialises vendor/<name>/ as an
+    # existing but EMPTY directory, so is_dir() is True. Treating that as "no
+    # license documents" hashes it to sha256 of nothing — identically for every
+    # upstream — which reads as "verified clean" forever after.
+    empty = tmp_path / "vendor-sub"
+    empty.mkdir()
+    assert lic.license_docs(empty) is None
+    assert lic.fingerprint_docs(empty) is None
+
+
+def test_populated_checkout_without_license_docs_is_empty_not_none(tmp_path):
+    # A real checkout that genuinely ships no licensing document is a fact about
+    # the upstream, not a broken working tree, and must stay verifiable.
+    root = tmp_path / "sub"
+    root.mkdir()
+    _write(root, "README.md", "x")
+    assert lic.license_docs(root) == []
+    assert lic.fingerprint_docs(root) is not None
+
+
+def test_is_fingerprint_rejects_non_str_and_malformed():
+    # plugins.yaml is hand-editable and YAML types an unquoted 1234... as an int.
+    # Slicing an int raised TypeError on the advisory path, aborting the build
+    # that path promises never to abort.
+    assert lic.is_fingerprint("z" * 64) is False      # not hex
+    assert lic.is_fingerprint("a" * 64) is True       # 'a' IS a hex digit
+    assert lic.is_fingerprint("0" * 64) is True
+    assert lic.is_fingerprint(12345) is False
+    assert lic.is_fingerprint(None) is False
+    assert lic.is_fingerprint("00feaa42") is False    # too short
+    assert lic.is_fingerprint("F" * 64) is False      # uppercase
 
 
 def test_fingerprint_is_stable_and_order_independent(tmp_path):
