@@ -545,7 +545,7 @@ def apply_downstream_patches(plugin_name: str, required: bool = False) -> int:
 
     plugin_dir = PLUGINS_DIR / plugin_name
     applied = 0
-    for i, edit in enumerate(spec["edits"]):
+    for i, edit in enumerate(spec["edits"], 1):  # 1-based: the message names an edit a human counts in the patch file
         for key in ("file", "find", "replace"):
             if key not in edit:
                 raise SystemExit(
