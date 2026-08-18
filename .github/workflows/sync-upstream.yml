@@ -262,7 +262,7 @@ jobs:
           # any that look reassigned to a different plugin, and where the file
           # weight sits. A python failure aborts the step under `set -e`.
           python3 <<'PY'
-          import collections, os, re, subprocess
+          import collections, glob, os, re, subprocess
 
           diff = subprocess.run(
               ["git", "diff", "--cached", "--name-status", "--no-renames", "HEAD"],
@@ -326,6 +326,32 @@ jobs:
               out.append(f"**⚠ Possible plugin reassignment:** {mv}")
           else:
               out.append("**Possible plugin reassignment:** none")
+          # Which ADDED skills already have a home in another plugin. Overlap is
+          # normal here (the writer overlaps sci-* by design, ~20 cases), so this
+          # is not a gate — but a NEW overlap must be named rather than folded
+          # into an anonymous "+N skills" line. Writer v2.21.0 is the motivating
+          # case: it flattened document-skills/ to top level, so the writer began
+          # shipping docx/pdf/pptx/xlsx, which kdense-document-skills owns. The
+          # build did not fail and the old summary would have said only
+          # "Skills added (4)".
+          owners = collections.defaultdict(set)
+          for skills_dir in sorted(glob.glob("plugins/*/skills/*/SKILL.md")):
+              parts = skills_dir.split("/")
+              owners[parts[3]].add(parts[1])
+          new_overlaps = sorted(
+              (skill, plugin, sorted(owners[skill] - {plugin}))
+              for plugin, skill in added
+              if len(owners.get(skill, ())) > 1
+          )
+          if new_overlaps:
+              out.append(
+                  "**\u26a0 Added skills that already exist elsewhere:** "
+                  + "; ".join(
+                      f"`{s}` into {p} (also in {', '.join(o)})"
+                      for s, p, o in new_overlaps
+                  )
+                  + " \u2014 confirm which plugin should own each before merging."
+              )
           out.append(f"**Skills modified:** {len(modified)}")
           out.append(
               f"**File breakdown:** {cat['mechanical']} mechanical, "

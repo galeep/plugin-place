@@ -263,7 +263,13 @@ plugins:
     kind: vendored
     upstream: claude-scientific-writer
     category: communication
-    description: "K-Dense's scientific writing toolkit: 23 skills (papers, grants, posters, clinical reports, paper-2-web) plus a /scientific-writer-init command. NOTE: 22 of these 23 skills also appear in sci-* plugins; only paper-2-web is unique to the writer. To avoid duplicate skills, install EITHER claude-scientific-writer OR the relevant sci-* plugins, not both."
+    # No skill count and no "only X is unique" claim: both rotted silently.
+    # The text said "23 skills, only paper-2-web is unique" while the built
+    # plugin had 22 and paper-2-web was not among them. A hand-maintained tally
+    # of a generated tree drifts the moment upstream moves, and nothing checks
+    # it. The sync workflow now names newly-overlapping skills in the PR body
+    # instead (see .github/workflows/sync-upstream.yml).
+    description: "K-Dense's scientific writing toolkit (papers, grants, posters, clinical reports, document conversion) plus a /scientific-writer-init command. NOTE: this is a BUNDLE — its skills also ship in the focused sci-* and kdense-* plugins. To avoid duplicate skills, install EITHER claude-scientific-writer OR the focused plugins, not both."
 
   # ──────────────────────────────────────────────────────────────────────
   # Vendored-whole plugin with downstream patches
