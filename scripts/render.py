@@ -244,6 +244,31 @@ def build_agents_plugin(plugin, upstream, agents_table, catalog_by_slug):
     )
 
 
+def drop_non_skill_containers(skills_root_dir: Path) -> None:
+    """Remove directories directly under skills/ that are not themselves skills.
+
+    Claude Code expects skills exactly one level deep under skills/, each with a
+    SKILL.md at its root. Upstreams put other things there: K-Dense's writer
+    ships `document-skills/` as a container holding 4 sub-skills (those are
+    split into their own `built` plugin, see kdense-document-skills), and
+    caveman v2.1.0 added `skills/generated/`, a build artifact holding per-agent
+    pack.json files for aider/codex/gemini/hermes/opencode. Either way a
+    SKILL.md-less directory fails validate-plugin.sh, so drop it.
+
+    Only DIRECTORIES are dropped. Loose files under skills/ (caveman v2.1.0 also
+    added compile.mjs, registry.json, verbs-gate.mjs, native-core.md,
+    engine-mcp-tools.json) are left alone: they do not trip the validator, and
+    upstream's own skills may reference them.
+    """
+    if not skills_root_dir.is_dir():
+        return
+    for container in sorted(skills_root_dir.iterdir()):
+        if not container.is_dir() or (container / "SKILL.md").exists():
+            continue
+        print(f"  dropping container directory: {container.name}/", file=sys.stderr)
+        shutil.rmtree(container)
+
+
 def build_vendored_plugin(plugin: dict, upstream: dict) -> None:
     """Copy a complete upstream plugin into plugins/<name>/, generate plugin.json."""
     name = plugin["name"]
@@ -257,19 +282,8 @@ def build_vendored_plugin(plugin: dict, upstream: dict) -> None:
         if src.is_dir():
             shutil.copytree(src, plugin_dir / subdir)
 
-    # Drop container directories under skills/ that are not themselves skills
-    # (no SKILL.md at their root). K-Dense's writer ships `document-skills/`
-    # as a container with 4 sub-skills inside, but Claude Code expects skills
-    # one level deep under skills/. Those skills are split into their own
-    # `built` plugin (see kdense-document-skills); we drop the container here
-    # to keep the writer plugin valid.
     skills_root_dir = plugin_dir / "skills"
-    if skills_root_dir.is_dir():
-        for container in list(skills_root_dir.iterdir()):
-            if not container.is_dir() or (container / "SKILL.md").exists():
-                continue
-            print(f"  dropping container directory: {container.name}/", file=sys.stderr)
-            shutil.rmtree(container)
+    drop_non_skill_containers(skills_root_dir)
 
     # Inject the `via galeep` vendor author into every copied SKILL.md.
     attribute_skill_tree(skills_root_dir, upstream.get("author"))
@@ -344,7 +358,14 @@ def build_vendored_whole_plugin(plugin: dict, upstream: dict) -> None:
     plugin_dir.mkdir(parents=True, exist_ok=True)
 
     copy_dirs = ("skills", "commands", "agents", "hooks", "src", "assets")
-    copy_files = ("LICENSE",)
+    # LICENSING.md / LICENSE.BSL: caveman v2.1.0 relicensed to a split model and
+    # its root LICENSE now opens with a scope note naming both files. None of the
+    # BSL-1.1 directories that note lists (engine/, proxy/, cacheengine/,
+    # rewriter/, browse/, mcp/, shrink/, cavemem Go core, shared/platform/) are in
+    # copy_dirs, so what we vendor is MIT — but shipping the scope note without
+    # the documents it points at leaves a dangling reference in a license file.
+    # Copied when present; absent upstream (or on an older pin) they are skipped.
+    copy_files = ("LICENSE", "LICENSING.md", "LICENSE.BSL")
     for d in copy_dirs:
         s = src_root / d
         if s.is_dir():
@@ -353,6 +374,10 @@ def build_vendored_whole_plugin(plugin: dict, upstream: dict) -> None:
         s = src_root / f
         if s.is_file():
             shutil.copy2(s, plugin_dir / f)
+
+    # Same non-skill container drop the `vendored` path does: caveman v2.1.0
+    # added skills/generated/, which has no SKILL.md and fails validation.
+    drop_non_skill_containers(plugin_dir / "skills")
 
     # Inject the `via galeep` vendor author into every copied SKILL.md. Runs
     # before apply_downstream_patches (in main); patch anchors live in hook src/
