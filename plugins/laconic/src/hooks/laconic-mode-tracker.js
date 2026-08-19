@@ -39,20 +39,52 @@ process.stdin.on('error', () => process.exit(0));
 process.stdin.on('end', () => {
   try {
     const data = JSON.parse(input);
-    const prompt = (data.prompt || '').trim().toLowerCase().replace(/\s+/g, ' ');
+    let prompt = (data.prompt || '').trim().toLowerCase().replace(/\s+/g, ' ');
+
+    // Claude Code delivers a slash command to this hook as an envelope rather
+    // than the literal command:
+    //   <command-message>laconic</command-message>
+    //   <command-name>/laconic:laconic</command-name>
+    //   <command-args>laconic</command-args>
+    // The whitespace collapse above normalizes the one-line and newline forms
+    // into the same string; <command-args> may be empty or absent. Every switch
+    // below matches a literal command, so without this reconstruction every
+    // slash invocation was a silent no-op, including `/laconic off`.
+    //
+    // The name arrives namespaced as `/laconic:laconic` when the plugin and the
+    // command share a name, so the match allows an optional `:<command>` suffix.
+    // A foreign command's envelope is left alone, and natural-language detection
+    // is skipped for it so another command's arguments cannot trip our own
+    // activation or deactivation triggers. Same shape as caveman's tracker.
+    let skipNaturalLanguage = false;
+    const envName = /<command-name>\s*([^<\s]+)\s*<\/command-name>/.exec(prompt);
+    if (envName) {
+      if (/^\/laconic(:[a-z0-9-]+)?$/.test(envName[1])) {
+        const envArgs = /<command-args>\s*([^<]*?)\s*<\/command-args>/.exec(prompt);
+        const args = envArgs ? envArgs[1].trim() : '';
+        prompt = args ? envName[1] + ' ' + args : envName[1];
+      } else {
+        skipNaturalLanguage = true;
+      }
+    }
 
     // Deactivation intent, computed first so "turn laconic off" never falls
     // through to activation.
+    // skipNaturalLanguage is set when a FOREIGN command's envelope was seen, so
+    // another command's arguments cannot read as a request to turn this register
+    // off. An explicit `/laconic off` still reaches the switch below, because the
+    // reconstruction above rewrites it into a literal command string.
     const wantsOff =
-      /\b(stop|disable|deactivate|turn off)\s+(the\s+)?laconic\b/.test(prompt) ||
+      !skipNaturalLanguage &&
+      (/\b(stop|disable|deactivate|turn off)\s+(the\s+)?laconic\b/.test(prompt) ||
       /\blaconic\s+(off|stop|disabled?)\b/.test(prompt) ||
-      /^(please\s+)?(go\s+|back\s+to\s+|switch\s+(back\s+)?to\s+|return\s+to\s+)?normal\s+mode\b/.test(prompt);
+      /^(please\s+)?(go\s+|back\s+to\s+|switch\s+(back\s+)?to\s+|return\s+to\s+)?normal\s+mode\b/.test(prompt));
 
     // /laconic [level|off] — explicit switch. The boundary matters: a bare
     // startsWith('/laconic') also matched `/laconic-ultra` and `/laconicfoo`, which
     // parse as an argument-less activation, so a mistyped command that the UI
     // rejects as unknown still turned the register on at a level nobody asked for.
-    if (/^\/laconic(\s|$)/.test(prompt)) {
+    if (/^\/laconic(:[a-z0-9-]+)?(\s|$)/.test(prompt)) {
       const arg = prompt.split(' ')[1] || '';
       let mode = null;
       // Bare `/laconic` asks to turn the register ON, so it resolves through
