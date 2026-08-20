@@ -1,6 +1,6 @@
 {
   "name": "claude-scientific-writer",
-  "version": "2.19.0",
+  "version": "2.21.0",
   "description": "K-Dense's scientific writing toolkit (papers, grants, posters, clinical reports, document conversion) plus a /scientific-writer-init command. NOTE: this is a BUNDLE \u2014 its skills also ship in the focused sci-* and kdense-* plugins. To avoid duplicate skills, install EITHER claude-scientific-writer OR the focused plugins, not both.",
   "author": {
     "name": "K-Dense Inc.",

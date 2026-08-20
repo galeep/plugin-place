@@ -37,7 +37,7 @@ upstreams:
     license_fingerprint: 38f3257a03cfdb7bae8a5595701fdf2ddc107f95504b0468328246afdff593bf
   claude-scientific-writer:
     submodule: vendor/claude-scientific-writer
-    pinned_tag: v2.19.0
+    pinned_tag: v2.21.0
     upstream_repo: K-Dense-AI/claude-scientific-writer
     license: MIT
     license_fingerprint: 82c0938ae85bbe1c66fe7e1efb9551e7f4ddf1f937b0cb0d1e8a6a3c27ad5448
