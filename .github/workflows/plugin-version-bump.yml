@@ -1,0 +1,181 @@
+name: Plugin version bump
+
+# The installer keys on the `version` in plugins/<name>/.claude-plugin/plugin.json
+# and a session loads from ~/.claude/plugins/cache/plugin-place/<name>/<version>/.
+# A plugin change merged without a version bump therefore reaches no installed
+# copy: /reload-plugins reports success and loads the old code. PR #77 fixed the
+# laconic slash-command tracker and shipped to nobody for exactly that reason.
+#
+# So this bumps the patch version of every LOCAL plugin the pull request changed
+# without a version change of its own, and commits it TO THE PULL REQUEST'S OWN
+# BRANCH. Nothing here ever writes to main: the workflow triggers only on
+# pull_request, and the step below refuses to run against the default branch.
+#
+# The decision of which plugins need a bump lives in scripts/lib/plugin_versions.py
+# with tests in tests/test_plugin_versions.py, so it is testable without pushing.
+# This file is a thin wrapper around it.
+
+on:
+  pull_request: {}
+
+permissions:
+  contents: read
+
+# One bump per pull request at a time. Two pushes in quick succession would
+# otherwise race two bump commits and the loser would fail non-fast-forward.
+concurrency:
+  group: ${{ github.workflow }}-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  # ── same-repo pull requests: bump on the branch ───────────────────────────
+  bump:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Check out the pull request branch
+        # The default pull_request checkout is the detached merge ref, which
+        # cannot be pushed from. Take the head branch itself. fetch-depth 0 for
+        # the merge-base comparison. Submodules are not needed: this reads only
+        # tracked files under plugins/ and plugins.yaml.
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install pyyaml
+
+      - name: Refuse to run anywhere but the pull request's own branch
+        # Belt over the trigger-only-on-pull_request braces. A ref that is empty
+        # or is the default branch means something is wrong with the event, and
+        # the one outcome that must never happen here is a commit on main.
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+          if [ -z "$HEAD_REF" ]; then
+            echo "::error::no pull request head ref; refusing to commit anywhere"
+            exit 1
+          fi
+          if [ "$HEAD_REF" = "$DEFAULT_BRANCH" ]; then
+            echo "::error::head ref is the default branch ($DEFAULT_BRANCH); refusing to commit"
+            exit 1
+          fi
+          echo "will bump on refs/heads/$HEAD_REF"
+
+      - name: Bump any plugin this pull request changed without one
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --quiet origin "+refs/heads/${BASE_REF}:refs/remotes/origin/${BASE_REF}"
+          python3 scripts/bump-plugin-versions.py --base-ref "origin/${BASE_REF}" --apply \
+            | tee /tmp/bump-versions.log
+
+      - name: Commit the bump to the pull request branch
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          set -euo pipefail
+
+          # The tool writes plugin manifests and nothing else. Anything else
+          # dirty means it did something it was never meant to do, so stop
+          # rather than commit it.
+          if ! git diff --quiet -- 'plugins' ':(exclude)plugins/*/.claude-plugin/plugin.json'; then
+            echo "::error::the bump tool changed files other than plugin manifests"
+            git --no-pager diff --stat -- 'plugins' ':(exclude)plugins/*/.claude-plugin/plugin.json'
+            exit 1
+          fi
+
+          # Staged by name, from the manifest pathspec only.
+          mapfile -d '' changed < <(git diff --name-only -z -- 'plugins/*/.claude-plugin/plugin.json')
+          if [ "${#changed[@]}" -eq 0 ]; then
+            echo "nothing to commit; every changed plugin already carries a version bump"
+            exit 0
+          fi
+          git add -- "${changed[@]}"
+
+          # An obviously-automated identity. Not a human's, and no
+          # Co-Authored-By: the commit is the workflow's, not a collaboration.
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          {
+            echo "chore: bump the version of every plugin this PR changed"
+            echo
+            echo "The installer caches a plugin under <name>/<version>/, so a change"
+            echo "merged without a version bump reaches no installed copy."
+            echo
+            sed 's/^/  /' /tmp/bump-versions.log
+          } > /tmp/bump-versions.msg
+          git commit --quiet --file /tmp/bump-versions.msg
+
+          git push origin "HEAD:refs/heads/${HEAD_REF}"
+          {
+            echo "### Plugin version bumped"
+            echo
+            echo '```'
+            cat /tmp/bump-versions.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # ── fork pull requests: no push is possible, so say so loudly ─────────────
+  check:
+    if: github.event.pull_request.head.repo.full_name != github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      # A fork's branch lives in a repository this workflow's token cannot write
+      # to, so the bump cannot be made for the contributor. Failing with the file
+      # to edit beats silently not bumping, which would merge a change that
+      # reaches no installed copy — the failure this whole workflow exists to
+      # stop. Deliberately NOT pull_request_target: that would run base-repo
+      # code with a write token against fork content, and it still could not push
+      # to the fork.
+      - name: Check out the pull request
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install pyyaml
+
+      - name: Require a version bump for every plugin this pull request changed
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --quiet origin "+refs/heads/${BASE_REF}:refs/remotes/origin/${BASE_REF}"
+          if ! python3 scripts/bump-plugin-versions.py --base-ref "origin/${BASE_REF}" --check \
+                 > /tmp/bump-versions.log 2>/tmp/bump-versions.err; then
+            cat /tmp/bump-versions.err >&2
+            {
+              echo "### A plugin changed with no version bump"
+              echo
+              echo "This pull request comes from a fork, so the bump cannot be committed for you."
+              echo
+              echo '```'
+              cat /tmp/bump-versions.log
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            cat /tmp/bump-versions.log
+            echo "::error::a plugin changed with no version bump; see the job summary"
+            exit 1
+          fi
+          cat /tmp/bump-versions.err >&2 || true
+          cat /tmp/bump-versions.log
