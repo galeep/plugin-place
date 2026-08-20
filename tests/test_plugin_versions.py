@@ -182,9 +182,14 @@ def make_repo(root, version="0.2.0"):
     (root / "plugins" / "caveman" / ".claude-plugin" / "plugin.json").write_text(
         manifest("2.1.0", "caveman")
     )
+    other = root / "plugins" / "other-local" / ".claude-plugin"
+    other.mkdir(parents=True)
+    (other / "plugin.json").write_text(manifest("1.0.0", "other-local"))
+    (root / "plugins" / "other-local" / "note.md").write_text("shared\n")
     (root / "plugins.yaml").write_text(
         yaml.safe_dump(
             {"plugins": [{"name": "laconic", "kind": "local"},
+                         {"name": "other-local", "kind": "local"},
                          {"name": "caveman", "kind": "vendored-whole"}]}
         )
     )
@@ -262,3 +267,68 @@ def test_a_generated_plugin_changed_on_a_real_branch_is_not_touched(tmp_path):
     assert "caveman left alone" in result.stderr
     kept = json.loads((root / "plugins/caveman/.claude-plugin/plugin.json").read_text())
     assert kept["version"] == "2.1.0"
+
+
+def test_a_file_moved_between_plugins_bumps_both_ends(tmp_path):
+    """Rename detection would name only the destination.
+
+    The plugin that lost the file still ships it in every installed copy, so it
+    needs a bump just as much as the one that gained it.
+    """
+    root = tmp_path / "repo"
+    root.mkdir()
+    run = make_repo(root)
+    (root / "plugins" / "other-local" / "note.md").rename(
+        root / "plugins" / "laconic" / "note.md"
+    )
+    run("add", "-A")
+    run("commit", "-q", "-m", "move a file between plugins")
+
+    result = cli(root, "--apply")
+    assert result.returncode == 0, result.stderr
+    assert "bumped laconic: 0.2.0 -> 0.2.1" in result.stdout
+    assert "bumped other-local: 1.0.0 -> 1.0.1" in result.stdout
+
+
+def test_a_plugin_created_by_this_pr_is_not_bumped_on_a_real_branch(tmp_path):
+    """Nothing installed can be stale for a plugin that did not exist before."""
+    root = tmp_path / "repo"
+    root.mkdir()
+    run = make_repo(root)
+    newbie = root / "plugins" / "newbie" / ".claude-plugin"
+    newbie.mkdir(parents=True)
+    (newbie / "plugin.json").write_text(manifest("0.1.0", "newbie"))
+    (root / "plugins.yaml").write_text(
+        yaml.safe_dump(
+            {"plugins": [{"name": "laconic", "kind": "local"},
+                         {"name": "other-local", "kind": "local"},
+                         {"name": "newbie", "kind": "local"},
+                         {"name": "caveman", "kind": "vendored-whole"}]}
+        )
+    )
+    run("add", "-A")
+    run("commit", "-q", "-m", "add a plugin")
+
+    result = cli(root, "--apply")
+    assert result.returncode == 0, result.stderr
+    assert "no plugin needs a version bump" in result.stdout
+    assert "new plugin" in result.stderr
+    assert json.loads((newbie / "plugin.json").read_text())["version"] == "0.1.0"
+
+
+def test_a_broken_plugins_yaml_exits_as_a_tool_error_not_as_the_gate(tmp_path):
+    """Exit 1 means "bump this"; a tool failure must not borrow that signal.
+
+    The fork job branches on the exit code, so a crash that exited 1 would tell
+    a contributor to bump a plugin the tool never managed to name.
+    """
+    root = tmp_path / "repo"
+    root.mkdir()
+    run = make_repo(root)
+    (root / "plugins" / "laconic" / "README.md").write_text("# laconic\n\nnew\n")
+    (root / "plugins.yaml").write_text("plugins: [oops\n")
+    run("commit", "-q", "-am", "break the manifest")
+
+    result = cli(root, "--check")
+    assert result.returncode == 2
+    assert "plugins.yaml" in result.stderr

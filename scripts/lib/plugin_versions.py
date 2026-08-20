@@ -86,11 +86,15 @@ def plugins_touched(paths):
 
 def local_plugin_names(config):
     """Names of ``kind: local`` plugins in a parsed plugins.yaml."""
-    return {
-        entry["name"]
-        for entry in config.get("plugins", [])
-        if entry.get("kind") == LOCAL_KIND
-    }
+    names = set()
+    for entry in config.get("plugins") or []:
+        if not isinstance(entry, dict) or entry.get("kind") != LOCAL_KIND:
+            continue
+        name = entry.get("name")
+        if not name:
+            raise VersionError("plugins.yaml: a `kind: local` entry has no `name`")
+        names.add(name)
+    return names
 
 
 def read_version(text, where):
@@ -204,7 +208,10 @@ def merge_base(repo_root, base_ref, head="HEAD"):
 
 
 def changed_since(repo_root, base_sha, head="HEAD"):
-    out = git(repo_root, "diff", "--name-only", base_sha, head)
+    # --no-renames: rename detection reports only the destination, so a file
+    # moved out of one plugin into another would leave the losing plugin
+    # unflagged while its installed copy still ships the file.
+    out = git(repo_root, "diff", "--name-only", "--no-renames", base_sha, head)
     return [line for line in out.splitlines() if line]
 
 
@@ -213,14 +220,15 @@ def version_reader_at(repo_root, ref):
 
     def read(name):
         path = manifest_path(name)
-        proc = subprocess.run(
-            ["git", "-C", str(repo_root), "show", f"{ref}:{path}"],
-            capture_output=True,
-            text=True,
-        )
-        if proc.returncode != 0:
+        # ls-tree first: it exits 0 with empty output when the path is simply
+        # absent, and fails for a bad ref or a broken object. Reading a `git
+        # show` failure as absence would turn any git error into a silent skip,
+        # which is the exact under-bumping this tool exists to stop.
+        if not git(repo_root, "ls-tree", "-z", ref, "--", path).strip("\0"):
             return None
-        return read_version(proc.stdout, f"{path} at {ref}")
+        return read_version(
+            git(repo_root, "show", f"{ref}:{path}"), f"{path} at {ref}"
+        )
 
     return read
 
@@ -253,7 +261,11 @@ GATE_ADVICE = (
 def load_local_names(repo_root):
     import yaml  # imported here so the pure logic above needs no PyYAML
 
-    config = yaml.safe_load((Path(repo_root) / "plugins.yaml").read_text())
+    path = Path(repo_root) / "plugins.yaml"
+    try:
+        config = yaml.safe_load(path.read_text())
+    except (OSError, yaml.YAMLError) as e:
+        raise VersionError(f"{path}: could not read ({type(e).__name__}: {e})") from e
     return local_plugin_names(config or {})
 
 
