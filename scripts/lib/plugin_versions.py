@@ -172,6 +172,14 @@ def read_version(text, where):
         data = json.loads(text)
     except json.JSONDecodeError as e:
         raise VersionError(f"{where}: not valid JSON ({e})") from e
+    # json.loads accepts any JSON value, so a manifest holding a list or a
+    # scalar parses and then meets `.get`. Same shape check plugins.yaml gets at
+    # its top level, and for the same reason: an AttributeError here would exit
+    # 1, which the fork job reads as the gate rather than as the tool failing.
+    if not isinstance(data, dict):
+        raise VersionError(
+            f"{where}: expected a JSON object, got {type(data).__name__}"
+        )
     version = data.get("version")
     if version is None:
         raise VersionError(

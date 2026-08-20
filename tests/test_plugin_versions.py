@@ -155,6 +155,41 @@ def test_a_local_plugin_with_no_version_field_fails_loudly():
     assert "version" in str(e.value)
 
 
+@pytest.mark.parametrize(
+    "text", ["[]", '"laconic"', "42", "null", "true", '[{"version": "1.0.0"}]']
+)
+def test_a_manifest_that_is_valid_json_but_not_an_object_fails_loudly(text):
+    """The JSON half of the plugins.yaml shape check, and the last of that family.
+
+    `json.loads` accepts any JSON value, so a manifest holding a list or a
+    scalar parsed fine and then met `.get`, raising AttributeError past the
+    VersionError handling. main() would have exited 1, which the fork job shows
+    a contributor as the gate rather than as the tool failing. Issue #79.
+    """
+    with pytest.raises(pv.VersionError) as e:
+        pv.read_version(text, "plugins/laconic/.claude-plugin/plugin.json")
+    assert "plugins/laconic/.claude-plugin/plugin.json" in str(e.value)
+
+
+def test_an_ordinary_manifest_object_is_still_read_normally():
+    """The guard must not cost the ordinary case."""
+    assert pv.read_version(manifest("1.2.3"), "m.json") == "1.2.3"
+
+
+def test_a_manifest_that_is_not_an_object_exits_as_a_tool_error(tmp_path):
+    """End to end: exit 2, not the exit 1 the fork job reads as the gate."""
+    root = tmp_path / "repo"
+    root.mkdir()
+    run = make_repo(root)
+    (root / "plugins/laconic/.claude-plugin/plugin.json").write_text('["laconic"]\n')
+    run("commit", "-q", "-am", "manifest is a list")
+
+    result = cli(root, "--check")
+    assert result.returncode == 2
+    assert "plugins/laconic/.claude-plugin/plugin.json" in result.stderr
+    assert "Traceback" not in result.stderr
+
+
 def test_a_non_semver_version_is_not_guessed_at():
     with pytest.raises(pv.VersionError) as e:
         pv.bump_patch("0.2", "plugins/laconic/.claude-plugin/plugin.json")
