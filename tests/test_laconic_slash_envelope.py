@@ -28,9 +28,30 @@ pytestmark = pytest.mark.skipif(
 )
 
 
+def hermetic_env(config_dir):
+    """The host environment must not decide what these tests observe.
+
+    ``getActivationLevel`` consults ``LACONIC_DEFAULT_MODE`` and a config file
+    found through ``XDG_CONFIG_HOME``, falling back to ``~/.config/laconic`` when
+    that is unset, so a developer running with laconic configured would shift the
+    cases that pass no argument. Point the config lookup at an empty directory
+    and drop the overrides.
+    """
+    empty = os.path.join(str(config_dir), "empty-config-home")
+    os.makedirs(empty, exist_ok=True)
+    env = dict(os.environ)
+    for name in ("LACONIC_DEFAULT_MODE", "LACONIC_DEBUG"):
+        env.pop(name, None)
+    env["XDG_CONFIG_HOME"] = empty
+    env["APPDATA"] = empty
+    env["CLAUDE_CONFIG_DIR"] = str(config_dir)
+    env["CLAUDE_PLUGIN_ROOT"] = PLUGIN
+    return env
+
+
 def run_hook(prompt, config_dir):
     payload = json.dumps({"prompt": prompt, "session_id": "test", "cwd": "/tmp"})
-    env = dict(os.environ, CLAUDE_CONFIG_DIR=str(config_dir), CLAUDE_PLUGIN_ROOT=PLUGIN)
+    env = hermetic_env(config_dir)
     proc = subprocess.run(
         ["node", HOOK], input=payload, capture_output=True, text=True, env=env
     )
@@ -48,6 +69,14 @@ def envelope(name, args=""):
         f"<command-message>laconic</command-message>\n"
         f"<command-name>{name}</command-name>\n"
         f"<command-args>{args}</command-args>"
+    )
+
+
+def envelope_without_args_tag(name):
+    """Claude Code omits the tag entirely when a command is given no arguments."""
+    return (
+        f"<command-message>laconic</command-message>\n"
+        f"<command-name>{name}</command-name>"
     )
 
 
@@ -81,3 +110,10 @@ def test_a_foreign_command_cannot_switch_this_register(tmp_path):
 def test_natural_language_still_deactivates(tmp_path):
     flag, _ = run_hook("please stop laconic", tmp_path)
     assert flag == "off"
+
+
+@pytest.mark.parametrize("name", ["/laconic:laconic", "/laconic"])
+def test_an_absent_command_args_tag_still_activates(tmp_path, name):
+    """The reconstruction treats a missing tag as no arguments, same as an empty one."""
+    flag, _ = run_hook(envelope_without_args_tag(name), tmp_path)
+    assert flag == "laconic"
