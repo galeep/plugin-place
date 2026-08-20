@@ -97,8 +97,12 @@ jobs:
             exit 1
           fi
 
-          # Staged by name, from the manifest pathspec only.
-          mapfile -t changed < <(git diff --name-only -- 'plugins/*/.claude-plugin/plugin.json')
+          # Staged by name, from the manifest pathspec only. Via a file, not a
+          # process substitution: a git failure inside `< <(...)` yields an empty
+          # list and the step would report "nothing to commit", turning an error
+          # into a silent under-bump.
+          git diff --name-only -- 'plugins/*/.claude-plugin/plugin.json' > /tmp/bumped-manifests.txt
+          mapfile -t changed < /tmp/bumped-manifests.txt
           if [ "${#changed[@]}" -eq 0 ]; then
             echo "nothing to commit; every changed plugin already carries a version bump"
             exit 0
@@ -172,9 +176,15 @@ jobs:
           fi
           # Exit 1 is the gate ("a plugin needs a bump"); anything else is the
           # tool failing, and the two must not read the same to a contributor.
+          #
+          # `|| rc=$?` rather than a bare call: GitHub runs this script as
+          # `bash -e {0}`, and the `set -uo pipefail` above does not clear that
+          # -e, so a non-zero exit would kill the step here and leave every
+          # message below unprinted — a red step with its explanation still in
+          # /tmp, which is the inscrutable failure this workflow exists to stop.
+          rc=0
           python3 scripts/bump-plugin-versions.py --base-ref "origin/${BASE_REF}" --check \
-            > /tmp/bump-versions.log 2>/tmp/bump-versions.err
-          rc=$?
+            > /tmp/bump-versions.log 2>/tmp/bump-versions.err || rc=$?
           cat /tmp/bump-versions.err >&2
           cat /tmp/bump-versions.log
           if [ "$rc" -eq 0 ]; then
