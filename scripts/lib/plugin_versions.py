@@ -148,9 +148,16 @@ def local_plugin_names(config):
             )
         if entry.get("kind") != LOCAL_KIND:
             continue
+        # A string specifically. `name: 123` is an int in YAML, and plan()
+        # matches these against directory names taken from paths, which are
+        # always strings. An int would sit in the set matching nothing, so its
+        # own plugin would be read as generated and never bumped.
         name = entry.get("name")
-        if not name:
-            raise VersionError("plugins.yaml: a `kind: local` entry has no `name`")
+        if not isinstance(name, str) or not name:
+            raise VersionError(
+                f"plugins.yaml: a `kind: local` entry needs a non-empty string "
+                f"`name`, got {name!r}. Quote it if it looks like a number."
+            )
         names.add(name)
     return names
 

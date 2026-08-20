@@ -393,6 +393,32 @@ def test_a_plugins_yaml_with_no_plugins_key_at_all_is_refused():
     assert "plugins.yaml" in str(e.value)
 
 
+@pytest.mark.parametrize("name", [123, 1.5, True, ["laconic"], {"laconic": 1}, None, ""])
+def test_a_local_entry_whose_name_is_not_a_usable_string_is_refused(name):
+    """`name: 123` is an int in YAML, and plan() matches names as strings.
+
+    A non-string name lands in the set without matching anything plugins_touched
+    produces, so the plugin it names is skipped as generated and never bumped.
+    """
+    with pytest.raises(pv.VersionError) as e:
+        pv.local_plugin_names({"plugins": [{"kind": "local", "name": name}]})
+    assert "plugins.yaml" in str(e.value)
+
+
+def test_a_digit_named_plugin_is_fine_when_quoted():
+    """The type check must not cost a legal name: `name: "123"` is a real directory.
+
+    This is the pair to the case above. An int is refused because plan() would
+    never match it; the same characters as a string match and bump normally.
+    """
+    names = pv.local_plugin_names({"plugins": [{"kind": "local", "name": "123"}]})
+    assert names == {"123"}
+    bumps, _ = pv.plan(
+        ["plugins/123/README.md"], names, versions({"123": "0.2.0"}), versions({"123": "0.2.0"})
+    )
+    assert [(b.plugin, b.new) for b in bumps] == [("123", "0.2.1")]
+
+
 def test_an_empty_plugins_key_is_a_legitimate_empty_list():
     """`plugins:` with nothing under it declares no plugins; that is not malformed."""
     assert pv.local_plugin_names({"plugins": None}) == set()
