@@ -88,12 +88,13 @@ jobs:
         run: |
           set -euo pipefail
 
-          # The tool writes plugin manifests and nothing else. Anything else
-          # dirty means it did something it was never meant to do, so stop
-          # rather than commit it.
-          if ! git diff --quiet -- 'plugins' ':(exclude)plugins/*/.claude-plugin/plugin.json'; then
-            echo "::error::the bump tool changed files other than plugin manifests"
-            git --no-pager diff --stat -- 'plugins' ':(exclude)plugins/*/.claude-plugin/plugin.json'
+          # The tool writes plugin manifests and nothing else. Any other tracked
+          # file dirty means it did something it was never meant to do, so stop
+          # rather than commit it. The pathspec is the whole tree: scoped to
+          # plugins/ it would miss a dirtied plugins.yaml, script or workflow.
+          if ! git diff --quiet -- ':/' ':(exclude,top)plugins/*/.claude-plugin/plugin.json'; then
+            echo "::error::the bump tool changed tracked files other than plugin manifests"
+            git --no-pager diff --stat -- ':/' ':(exclude,top)plugins/*/.claude-plugin/plugin.json'
             exit 1
           fi
 

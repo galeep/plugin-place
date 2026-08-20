@@ -116,7 +116,8 @@ def test_a_docs_only_change_inside_a_local_plugin_still_bumps():
 
 def test_the_repos_own_plugins_yaml_marks_only_laconic_local():
     """Grounds the exclusion in the real manifest rather than a fixture."""
-    config = yaml.safe_load(open(os.path.join(REPO, "plugins.yaml")))
+    with open(os.path.join(REPO, "plugins.yaml")) as f:
+        config = yaml.safe_load(f)
     names = pv.local_plugin_names(config)
     assert "laconic" in names
     assert names.isdisjoint({"caveman", "claude-scientific-writer", "sci-physics-astronomy"})
@@ -332,3 +333,31 @@ def test_a_broken_plugins_yaml_exits_as_a_tool_error_not_as_the_gate(tmp_path):
     result = cli(root, "--check")
     assert result.returncode == 2
     assert "plugins.yaml" in result.stderr
+
+
+def test_a_plugins_yaml_that_is_not_a_mapping_exits_as_a_tool_error(tmp_path):
+    """Valid YAML of the wrong shape is still a tool error, not a stack trace.
+
+    A top-level list parses fine, so the read succeeds and the shape check is
+    the only thing standing between it and an AttributeError that would escape
+    the VersionError handling in main() and lose the exit-2 contract.
+    """
+    root = tmp_path / "repo"
+    root.mkdir()
+    run = make_repo(root)
+    (root / "plugins" / "laconic" / "README.md").write_text("# laconic\n\nnew\n")
+    (root / "plugins.yaml").write_text("- name: laconic\n  kind: local\n")
+    run("commit", "-q", "-am", "top-level list")
+
+    result = cli(root, "--check")
+    assert result.returncode == 2
+    assert "plugins.yaml" in result.stderr
+    assert "Traceback" not in result.stderr
+
+
+@pytest.mark.parametrize("config", [[], "", 0, False, ["laconic"], "laconic", 3])
+def test_local_plugin_names_refuses_anything_but_a_mapping(config):
+    """Including the falsy ones: an empty list must not read as no local plugins."""
+    with pytest.raises(pv.VersionError) as e:
+        pv.local_plugin_names(config)
+    assert "plugins.yaml" in str(e.value)

@@ -85,7 +85,17 @@ def plugins_touched(paths):
 
 
 def local_plugin_names(config):
-    """Names of ``kind: local`` plugins in a parsed plugins.yaml."""
+    """Names of ``kind: local`` plugins in a parsed plugins.yaml.
+
+    A non-mapping is a VersionError, not an AttributeError: main() converts a
+    VersionError into exit 2, and a stack trace escaping that would report a
+    malformed manifest with the tool's own crash code.
+    """
+    if not isinstance(config, dict):
+        raise VersionError(
+            f"plugins.yaml: expected a mapping at the top level, "
+            f"got {type(config).__name__}"
+        )
     names = set()
     for entry in config.get("plugins") or []:
         if not isinstance(entry, dict) or entry.get("kind") != LOCAL_KIND:
@@ -266,7 +276,10 @@ def load_local_names(repo_root):
         config = yaml.safe_load(path.read_text())
     except (OSError, yaml.YAMLError) as e:
         raise VersionError(f"{path}: could not read ({type(e).__name__}: {e})") from e
-    return local_plugin_names(config or {})
+    # Only an empty file becomes {}. `config or {}` would hand the falsy
+    # non-mappings ([], '', 0, false) straight past the shape check in
+    # local_plugin_names, reading them as "no local plugins" instead.
+    return local_plugin_names({} if config is None else config)
 
 
 def main(argv=None):
