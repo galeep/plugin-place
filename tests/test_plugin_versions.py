@@ -361,3 +361,107 @@ def test_local_plugin_names_refuses_anything_but_a_mapping(config):
     with pytest.raises(pv.VersionError) as e:
         pv.local_plugin_names(config)
     assert "plugins.yaml" in str(e.value)
+
+
+# ── a manifest that cannot name the local plugins says so, never guesses ─────
+#
+# Each shape below used to reach `return set()` or leak an exception past the
+# VersionError handling. Both read as "this repo has no local plugins", which is
+# the silent under-bump the tool exists to stop: every plugin then looks
+# generated and nothing is bumped. A leak is worse still in --check, where the
+# exit code lands on 1 and tells a contributor to bump a plugin nothing named.
+
+
+@pytest.mark.parametrize("plugins", [{"laconic": {"kind": "local"}}, "laconic", 42, True])
+def test_a_plugins_key_that_is_not_a_list_is_refused(plugins):
+    with pytest.raises(pv.VersionError) as e:
+        pv.local_plugin_names({"plugins": plugins})
+    assert "plugins.yaml" in str(e.value)
+
+
+@pytest.mark.parametrize("entry", ["laconic", ["laconic"], 3, None])
+def test_a_plugins_entry_that_is_not_a_mapping_is_refused(entry):
+    with pytest.raises(pv.VersionError) as e:
+        pv.local_plugin_names({"plugins": [entry]})
+    assert "plugins.yaml" in str(e.value)
+
+
+def test_a_plugins_yaml_with_no_plugins_key_at_all_is_refused():
+    """Absence reads as "no local plugins" exactly as a wrong type does, so it fails too."""
+    with pytest.raises(pv.VersionError) as e:
+        pv.local_plugin_names({"marketplace": {"name": "plugin-place"}})
+    assert "plugins.yaml" in str(e.value)
+
+
+def test_an_empty_plugins_key_is_a_legitimate_empty_list():
+    """`plugins:` with nothing under it declares no plugins; that is not malformed."""
+    assert pv.local_plugin_names({"plugins": None}) == set()
+    assert pv.local_plugin_names({"plugins": []}) == set()
+
+
+UNDECODABLE = b'{"name": "laconic", "version": "0.\xff\xfe2.0"}'
+
+
+def test_an_undecodable_plugins_yaml_is_a_version_error(tmp_path):
+    """UnicodeDecodeError is a ValueError, so the OSError/YAMLError catch missed it."""
+    (tmp_path / "plugins.yaml").write_bytes(b"plugins:\n  - name: \xff\xfe\n")
+    with pytest.raises(pv.VersionError):
+        pv.load_local_names(tmp_path)
+
+
+def test_an_undecodable_manifest_in_the_worktree_is_a_version_error(tmp_path):
+    manifest_dir = tmp_path / "plugins" / "laconic" / ".claude-plugin"
+    manifest_dir.mkdir(parents=True)
+    (manifest_dir / "plugin.json").write_bytes(UNDECODABLE)
+    with pytest.raises(pv.VersionError) as e:
+        pv.version_reader_worktree(tmp_path)("laconic")
+    assert "plugins/laconic/.claude-plugin/plugin.json" in str(e.value)
+
+
+def test_an_undecodable_manifest_at_a_ref_is_a_version_error(tmp_path):
+    """The git layer decodes its own output, so the base-ref read leaks the same way."""
+    root = tmp_path / "repo"
+    root.mkdir()
+    run = make_repo(root)
+    (root / "plugins/laconic/.claude-plugin/plugin.json").write_bytes(UNDECODABLE)
+    run("commit", "-q", "-am", "bad bytes")
+    with pytest.raises(pv.VersionError):
+        pv.version_reader_at(root, "HEAD")("laconic")
+
+
+def test_apply_bumps_turns_a_read_failure_into_a_version_error(tmp_path):
+    manifest_dir = tmp_path / "plugins" / "laconic" / ".claude-plugin"
+    manifest_dir.mkdir(parents=True)
+    (manifest_dir / "plugin.json").write_bytes(UNDECODABLE)
+    bump = pv.Bump("laconic", "plugins/laconic/.claude-plugin/plugin.json", "0.2.0", "0.2.1")
+    with pytest.raises(pv.VersionError) as e:
+        pv.apply_bumps([bump], tmp_path)
+    assert "plugins/laconic/.claude-plugin/plugin.json" in str(e.value)
+
+
+def test_a_plugins_list_of_the_wrong_shape_exits_as_a_tool_error(tmp_path):
+    """The end-to-end contract for the fork job: exit 2, not the exit 1 gate."""
+    root = tmp_path / "repo"
+    root.mkdir()
+    run = make_repo(root)
+    (root / "plugins" / "laconic" / "README.md").write_text("# laconic\n\nnew\n")
+    (root / "plugins.yaml").write_text("plugins:\n  laconic:\n    kind: local\n")
+    run("commit", "-q", "-am", "plugins as a mapping")
+
+    result = cli(root, "--check")
+    assert result.returncode == 2
+    assert "plugins.yaml" in result.stderr
+    assert "Traceback" not in result.stderr
+
+
+def test_an_undecodable_manifest_exits_as_a_tool_error_not_as_the_gate(tmp_path):
+    root = tmp_path / "repo"
+    root.mkdir()
+    run = make_repo(root)
+    (root / "plugins/laconic/.claude-plugin/plugin.json").write_bytes(UNDECODABLE)
+    run("commit", "-q", "-am", "bad bytes")
+
+    result = cli(root, "--check")
+    assert result.returncode == 2
+    assert "plugins/laconic/.claude-plugin/plugin.json" in result.stderr
+    assert "Traceback" not in result.stderr

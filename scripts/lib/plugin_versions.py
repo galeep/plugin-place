@@ -68,6 +68,31 @@ def manifest_path(plugin):
     return f"{PLUGINS_DIR}/{plugin}/{MANIFEST_RELPATH}"
 
 
+def read_text(path, where):
+    """``path`` decoded as UTF-8, or a VersionError naming it.
+
+    Two failures reach here as something main() does not handle: OSError for a
+    file it cannot read, and UnicodeDecodeError for bytes it cannot decode. The
+    second is a ValueError, so an ``except OSError`` does not cover it. Either
+    one escaping leaves exit 1, which the fork job shows a contributor as the
+    gate. UTF-8 explicitly rather than the locale default: these manifests are
+    JSON and YAML, both UTF-8 by spec, and a runner with a C locale would
+    otherwise fail on the first non-ASCII byte in a description.
+    """
+    try:
+        return Path(path).read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as e:
+        raise VersionError(f"{where}: could not read ({type(e).__name__}: {e})") from e
+
+
+def write_text(path, text, where):
+    """``text`` into ``path`` as UTF-8, or a VersionError naming it."""
+    try:
+        Path(path).write_text(text, encoding="utf-8")
+    except (OSError, UnicodeEncodeError) as e:
+        raise VersionError(f"{where}: could not write ({type(e).__name__}: {e})") from e
+
+
 def plugins_touched(paths):
     """Plugin names owning any of ``paths``, sorted, deduplicated.
 
@@ -87,18 +112,41 @@ def plugins_touched(paths):
 def local_plugin_names(config):
     """Names of ``kind: local`` plugins in a parsed plugins.yaml.
 
-    A non-mapping is a VersionError, not an AttributeError: main() converts a
-    VersionError into exit 2, and a stack trace escaping that would report a
-    malformed manifest with the tool's own crash code.
+    Every malformed shape is a VersionError, which main() turns into exit 2.
+    Two ways that matters. A shape that leaks its own exception (AttributeError
+    on a non-mapping, TypeError on an uniterable ``plugins``) exits 1, and the
+    fork job reads exit 1 as the gate, telling a contributor to bump a plugin
+    nothing ever named. A shape that quietly yields no names is worse: every
+    local plugin then looks generated, so nothing is bumped and the change ships
+    to no installed copy, which is the failure this tool exists to stop.
     """
     if not isinstance(config, dict):
         raise VersionError(
             f"plugins.yaml: expected a mapping at the top level, "
             f"got {type(config).__name__}"
         )
+    if "plugins" not in config:
+        raise VersionError(
+            "plugins.yaml: no `plugins` key. Refusing to read that as "
+            "\"no local plugins\", which would bump nothing and say nothing."
+        )
+    # `plugins:` with nothing under it parses as None and does declare no
+    # plugins. Any other non-list is malformed rather than empty.
+    entries = config["plugins"]
+    if entries is None:
+        entries = []
+    if not isinstance(entries, list):
+        raise VersionError(
+            f"plugins.yaml: `plugins` must be a list, got {type(entries).__name__}"
+        )
     names = set()
-    for entry in config.get("plugins") or []:
-        if not isinstance(entry, dict) or entry.get("kind") != LOCAL_KIND:
+    for entry in entries:
+        if not isinstance(entry, dict):
+            raise VersionError(
+                f"plugins.yaml: every `plugins` entry must be a mapping, "
+                f"got {type(entry).__name__}"
+            )
+        if entry.get("kind") != LOCAL_KIND:
             continue
         name = entry.get("name")
         if not name:
@@ -193,8 +241,8 @@ def apply_bumps(bumps, repo_root):
     written = []
     for bump in bumps:
         path = Path(repo_root) / bump.manifest
-        text = path.read_text()
-        path.write_text(rewrite_version(text, bump.old, bump.new, bump.manifest))
+        text = read_text(path, bump.manifest)
+        write_text(path, rewrite_version(text, bump.old, bump.new, bump.manifest), bump.manifest)
         written.append(bump.manifest)
     return written
 
@@ -203,9 +251,19 @@ def apply_bumps(bumps, repo_root):
 
 
 def git(repo_root, *args):
-    proc = subprocess.run(
-        ["git", "-C", str(repo_root), *args], capture_output=True, text=True
-    )
+    # `git show <ref>:<manifest>` streams the file through here, so this decodes
+    # manifest bytes as surely as read_text does, and fails the same way on a
+    # manifest that is not valid UTF-8. Left uncaught it would exit 1, the fork
+    # job's gate signal, for what is a tool failure.
+    try:
+        proc = subprocess.run(
+            ["git", "-C", str(repo_root), *args],
+            capture_output=True, text=True, encoding="utf-8",
+        )
+    except (OSError, UnicodeDecodeError) as e:
+        raise VersionError(
+            f"git {' '.join(args)} failed ({type(e).__name__}: {e})"
+        ) from e
     if proc.returncode != 0:
         raise VersionError(
             f"git {' '.join(args)} failed ({proc.returncode}): {proc.stderr.strip()}"
@@ -254,7 +312,7 @@ def version_reader_worktree(repo_root):
         path = Path(repo_root) / manifest_path(name)
         if not path.is_file():
             return None
-        return read_version(path.read_text(), manifest_path(name))
+        return read_version(read_text(path, manifest_path(name)), manifest_path(name))
 
     return read
 
@@ -272,13 +330,15 @@ def load_local_names(repo_root):
     import yaml  # imported here so the pure logic above needs no PyYAML
 
     path = Path(repo_root) / "plugins.yaml"
+    text = read_text(path, str(path))
     try:
-        config = yaml.safe_load(path.read_text())
-    except (OSError, yaml.YAMLError) as e:
-        raise VersionError(f"{path}: could not read ({type(e).__name__}: {e})") from e
-    # Only an empty file becomes {}. `config or {}` would hand the falsy
-    # non-mappings ([], '', 0, false) straight past the shape check in
-    # local_plugin_names, reading them as "no local plugins" instead.
+        config = yaml.safe_load(text)
+    except yaml.YAMLError as e:
+        raise VersionError(f"{path}: could not parse ({type(e).__name__}: {e})") from e
+    # An empty file parses as None. Mapping it to {} lands it on the missing
+    # `plugins` key error, which names what to add. `config or {}` would have
+    # sent the falsy non-mappings ([], '', 0, false) there too, reading them as
+    # "no local plugins" instead of rejecting the shape.
     return local_plugin_names({} if config is None else config)
 
 
