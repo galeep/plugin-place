@@ -45,7 +45,7 @@ upstreams:
     author: "K-Dense Inc."
   caveman:
     submodule: vendor/caveman
-    pinned_tag: v2.1.0
+    pinned_tag: v2.3.1
     upstream_repo: JuliusBrussee/caveman
     license: MIT
     license_fingerprint: 00feaa42e827d31f99e304e8620295c5e18552c5436942e0069df09bce6c8897
