@@ -45,10 +45,10 @@ upstreams:
     author: "K-Dense Inc."
   caveman:
     submodule: vendor/caveman
-    pinned_tag: v2.1.0
+    pinned_tag: v2.4.0
     upstream_repo: JuliusBrussee/caveman
     license: MIT
-    license_fingerprint: 00feaa42e827d31f99e304e8620295c5e18552c5436942e0069df09bce6c8897
+    license_fingerprint: 3b80a5184864c716e1a2001784267182f920f439775692cb820a718aa89d318b
     # caveman skill files carry no author; attribute the upstream author
     author: "Julius Brussee"
 

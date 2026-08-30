@@ -4,7 +4,7 @@ Caveman: ultra-compressed communication mode (lite/full/ultra/wenyan). Cuts ~75%
 
 ## Provenance
 
-Vendored whole from [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) @ `v2.1.0`.
+Vendored whole from [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) @ `v2.4.0`.
 Licensed under MIT. All credit to the upstream author.
 
 Downstream edits (if any) are applied from `patches/caveman.json` on every build
