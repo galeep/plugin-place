@@ -64,6 +64,16 @@ if (configFailure) {
 }
 const { readFlag, appendFlag, readHistory, safeWriteFlag, VALID_MODES, MODE_LOG_BASENAME } = cavemanConfig;
 
+// Per-session helpers, resolved individually and NOT added to the shape check
+// above: a config module from before per-session state still produces correct
+// (machine-wide) figures, and hard-failing stats over the newer exports would
+// turn a working report into an error. Each stub is the pre-per-session read.
+const resolveActiveMode = cavemanConfig.resolveActiveMode
+  || ((dir) => { const m = readFlag(path.join(dir, '.caveman-active')); return (!m || m === 'off') ? null : m; });
+const validateSessionId = cavemanConfig.validateSessionId || (() => null);
+const sessionActivePath = cavemanConfig.sessionActivePath || (() => null);
+const legacyFlagPath = cavemanConfig.legacyFlagPath || ((dir) => path.join(dir, '.caveman-active'));
+
 // Mean per-task savings from benchmarks/results/*.json (avg_savings: 65 across
 // 10 tasks, sonnet-4-20250514). Only 'full' has measured data; lite / ultra /
 // wenyan modes show no estimate until benchmarked. Add an entry here when a new
@@ -91,6 +101,14 @@ function ruleOverheadPerTurn() {
 // https://www.anthropic.com/pricing if a release changes the tier.
 // Most-specific prefixes MUST come first — priceForModel returns the first match.
 const MODEL_OUTPUT_PRICE_PER_M = [
+  // Claude 5 family. Fable/Mythos (models.anthropic.com naming) sit at the
+  // top $50/M tier; Opus 5 dropped to $25/M. Sonnet 5's $10/M rate is the
+  // permanent standard price — the increase to $15/M planned for
+  // 2026-09-01 was cancelled (see anthropic.com/docs/en/about-claude/pricing).
+  ['claude-fable-5',   50.00],
+  ['claude-mythos-5',  50.00],
+  ['claude-opus-5',    25.00],
+  ['claude-sonnet-5',  10.00],
   // Legacy Opus 4.0 / 4.1 (pre-4.5) billed at the old $75/M output tier,
   // including the dated ids (e.g. claude-opus-4-20250514).
   ['claude-opus-4-0',    75.00],
@@ -220,12 +238,21 @@ function summarizeCompressed(pairs) {
 // stats joins those timestamps against the session JSONL message timestamps.
 
 // Read + validate the transition log. Returns rows sorted by ts.
-function readModeLog(logPath) {
+//
+// When sessionId is given, rows belonging to a DIFFERENT session are dropped.
+// Without this the log is a machine-wide interleaving: a mode switch in window
+// B lands between two of window A's messages and gets joined onto A's timeline,
+// skewing A's savings estimate. Rows with no session_id predate the tagging and
+// are kept — for a single-session user they are still the right answer, and
+// discarding them would silently downgrade attribution to 'whole-session'.
+function readModeLog(logPath, sessionId) {
+  const wanted = validateSessionId(sessionId);
   const rows = [];
   for (const line of readHistory(logPath)) {
     let e;
     try { e = JSON.parse(line); } catch { continue; }
     if (!e || typeof e !== 'object' || !Number.isFinite(e.ts)) continue;
+    if (wanted && e.session_id != null && e.session_id !== wanted) continue;
     const norm = (v) => (v == null ? null : (VALID_MODES.includes(String(v)) ? String(v) : undefined));
     const mode = norm(e.mode);
     const prev = norm(e.prev);
@@ -552,6 +579,8 @@ function main() {
   const args = process.argv.slice(2);
   const i = args.indexOf('--session-file');
   const sessionFileArg = i !== -1 ? args[i + 1] : null;
+  const sessionIdIdx = args.indexOf('--session-id');
+  const sessionIdArg = sessionIdIdx !== -1 ? args[sessionIdIdx + 1] : null;
   const share = args.includes('--share');
   const all = args.includes('--all');
   const sinceIdx = args.indexOf('--since');
@@ -580,15 +609,30 @@ function main() {
   }
 
   const parsed = parseSession(sessionFile);
-  const flagPath = path.join(claudeDir, '.caveman-active');
-  const mode = readFlag(flagPath);
+
+  // Session id: the hook forwards --session-id from the UserPromptSubmit
+  // payload. Falling back to the transcript filename is not a guess — Claude
+  // Code names transcripts by session id, which is why the lifetime history has
+  // always keyed on it.
+  const sessionId = validateSessionId(sessionIdArg)
+    || validateSessionId(path.basename(sessionFile, '.jsonl'));
+
+  // Read whichever layer holds this session's state, and take the mtime from
+  // that same file so the 'flag-mtime' attribution fallback measures the right
+  // thing. resolveActiveMode collapses a durable 'off' to null, matching the
+  // pre-existing "no flag file means no mode" contract the formatters expect.
+  const sessionPath = sessionActivePath(claudeDir, sessionId);
+  const flagPath = (sessionPath && fs.existsSync(sessionPath))
+    ? sessionPath
+    : legacyFlagPath(claudeDir);
+  const mode = resolveActiveMode(claudeDir, sessionId);
 
   // #601: attribute tokens to the mode active when each message happened,
   // via the transition log the hooks maintain (fallbacks documented on
   // attributeByMode). Never credit the whole session to the current flag.
   let flagMtimeMs = null;
   try { flagMtimeMs = fs.statSync(flagPath).mtimeMs; } catch (e) {}
-  const modeLog = readModeLog(path.join(claudeDir, MODE_LOG_BASENAME));
+  const modeLog = readModeLog(path.join(claudeDir, MODE_LOG_BASENAME), sessionId);
   const attribution = attributeByMode({
     messages: parsed.messages,
     modeLog,
@@ -602,10 +646,9 @@ function main() {
   // session_id; aggregateHistory keeps only the latest per session_id.
   if (parsed.turns > 0) {
     const { estSavedTokens, estSavedUsd } = deriveSavings({ byMode: attribution.byMode, model: parsed.model });
-    const sessionId = path.basename(sessionFile, '.jsonl');
     appendFlag(historyPath, JSON.stringify({
       ts: Date.now(),
-      session_id: sessionId,
+      session_id: sessionId || path.basename(sessionFile, '.jsonl'),
       mode: mode || null,
       model: parsed.model || null,
       output_tokens: parsed.outputTokens,
