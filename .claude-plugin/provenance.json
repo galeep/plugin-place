@@ -18,9 +18,9 @@
     "repo": "K-Dense-AI/claude-scientific-writer"
   },
   "caveman": {
-    "version": "v2.1.0",
-    "sha": "f8b6bfc7c7d3db38acae062070bf5d89f4d49ebf",
-    "describe": "bin-v1.1.0",
+    "version": "v2.5.0",
+    "sha": "f9a039a93d249f3fcdb47a9e02544cd1ce37ba4a",
+    "describe": "bin-v1.1.5",
     "repo": "JuliusBrussee/caveman"
   }
 }
