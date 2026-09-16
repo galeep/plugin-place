@@ -434,7 +434,7 @@ def build_vendored_whole_plugin(plugin: dict, upstream: dict) -> None:
     plugin_dir = PLUGINS_DIR / name
     plugin_dir.mkdir(parents=True, exist_ok=True)
 
-    copy_dirs = ("skills", "commands", "agents", "hooks", "src", "assets")
+    copy_dirs = ("skills", "commands", "agents", "hooks", "src", "assets", "bin")
     # Licensing documents come from licenses.license_docs — the SAME matcher the
     # fingerprint tripwire uses — rather than a hardcoded tuple. Two independent
     # lists of "what counts as a licensing document" drift apart silently: an
