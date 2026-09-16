@@ -88,6 +88,14 @@ const writeSessionMode = cfg.writeSessionMode || ((dir, sid, modeOrNull) => {
 const writeSessionPrev = cfg.writeSessionPrev || ((dir, sid, mode) => safeWriteFlag(prevPath, mode));
 const readSessionPrev = cfg.readSessionPrev || (() => readFlag(prevPath));
 const clearSessionPrev = cfg.clearSessionPrev || (() => removeFlag(prevPath));
+// Ruleset injection helpers, shared with caveman-activate.js so a mid-session
+// switch delivers the SAME ruleset SessionStart does (#975). Resolved
+// individually like the per-session helpers above: a caveman-config.js
+// predating them passes the shape check, and the stand-ins below degrade this
+// hook to exactly its pre-#975 behavior — the one-line reminder, nothing more.
+const canonicalModeLabel = cfg.canonicalModeLabel || ((m) => (m === 'wenyan' ? 'wenyan-full' : m));
+const rulesetBanner = cfg.rulesetBanner || ((m) => 'CAVEMAN MODE ACTIVE — level: ' + canonicalModeLabel(m));
+const loadFilteredRuleset = cfg.loadFilteredRuleset || (() => null);
 const { parseModeChange, INDEPENDENT_MODES } = requireSibling('caveman-parse', (m) =>
   m && typeof m.parseModeChange === 'function' && m.INDEPENDENT_MODES instanceof Set) || {
   parseModeChange: () => null,
@@ -99,6 +107,26 @@ const flagPath = path.join(claudeDir, '.caveman-active');
 // Remembers the prose mode active before a one-shot independent mode
 // (/caveman-commit etc.) so the next ordinary prompt can restore it (#599).
 const prevPath = path.join(claudeDir, '.caveman-active.prev');
+
+const REINFORCEMENT_RULES = {
+  lite: 'No filler, hedging, or pleasantries. Keep articles and full sentences OK, but stay tight.',
+  full: 'Drop articles (a/an/the), filler, pleasantries, and hedging. Prefer fragments over full natural-prose sentences. No preamble or recap.',
+  ultra: 'Drop articles, filler, pleasantries, hedging, and excess conjunctions. Prefer fragments over full natural-prose sentences. State each fact once. No preamble or recap.',
+  'wenyan-lite': 'Use wenyan-lite: semi-classical terse register. Drop filler and hedging. Keep meaning exact.',
+  'wenyan-full': 'Use wenyan-full: maximum classical terseness. Drop filler and hedging. Keep meaning exact.',
+  'wenyan-ultra': 'Use wenyan-ultra: extreme classical terseness. Drop filler and hedging. Keep meaning exact.',
+};
+
+function reinforcementForMode(mode) {
+  const canonical = mode === 'wenyan' ? 'wenyan-full' : mode;
+  const rules = REINFORCEMENT_RULES[canonical] || REINFORCEMENT_RULES.full;
+  return 'CAVEMAN MODE ACTIVE (' + mode + '). Enforce this reply: ' + rules +
+    ' Technical terms, code, commands, paths, and errors stay exact. ' +
+    'Terseness (drop articles/filler/pleasantries/hedging, fragments OK) is the FLOOR for low-value turns (status/lookup/recall), not a cap. ' +
+    'High-value turns (debug/design/tradeoff/review): spend for the turn\'s value, reason in full prose, compress only the final statement, never the reasoning. ' +
+    'Code/commits/security: write normal. ' +
+    'Unsure which? Err verbose: a silent skipped step costs more than visible length.';
+}
 
 function removeFlag(path) {
   try {
@@ -174,12 +202,17 @@ function handle(raw) {
     // verbatim. The script reads the active session log, so we pass
     // transcript_path through when Claude Code provides it.
     const statsMatch = /^\/caveman(?::caveman)?-stats(?:\s+(.*))?$/.exec(prompt);
-    if (false) { // /caveman-stats handled by the model-driven skill (skills/caveman-stats/SKILL.md); the hook must NOT block the turn or the skill never runs
+    if (statsMatch) {
       const tailArgs = (statsMatch[1] || '').trim().split(/\s+/).filter(Boolean);
+      // Resolved once, outside the try, because the failure message needs it
+      // too. A hardcoded `hooks/caveman-stats.js` is only real for a standalone
+      // install rooted at $CLAUDE_CONFIG_DIR — a plugin user has no such
+      // directory to run it from (#789).
+      const statsPath = path.join(__dirname, 'caveman-stats.js');
       let block;
       try {
-        const statsPath = path.join(__dirname, 'caveman-stats.js');
         const argv = [statsPath];
+        argv.push('--host', 'claude');
         if (data.transcript_path) argv.push('--session-file', data.transcript_path);
         // Lets stats drop mode-log rows belonging to other windows instead of
         // joining them onto this session's timeline.
@@ -198,7 +231,7 @@ function handle(raw) {
         // spawn is ~10x macOS before antivirus (#819), so the margin is real.
         block = execFileSync(process.execPath, argv, { encoding: 'utf8', timeout: 2500 }).trim();
       } catch (e) {
-        block = 'caveman-stats: could not run stats script.\nTry manually: node hooks/caveman-stats.js';
+        block = 'caveman-stats: could not run stats script.\nTry manually: node ' + statsPath;
       }
       process.stdout.write(JSON.stringify({
         hookSpecificOutput: {
@@ -241,22 +274,40 @@ function handle(raw) {
       }
     }
 
+    // The level the model is actually holding rules for, read BEFORE any write:
+    // a switch can only be detected against this, never against the value we
+    // are about to store. Read only on a `set`, so an ordinary turn — every
+    // turn, on the hot path — still makes the single state read it always did.
+    const modeBeforeChange = change && change.action === 'set'
+      ? resolveActiveMode(claudeDir, sessionId)
+      : null;
+
     // Independent one-shot modes remember the prose mode active before them
     // so the next ordinary prompt restores it (#599) — SKILL.md promises
     // "Level persist until changed or session end", and a one-shot skill
     // invocation should not count as "changed" forever.
     let setIndependentThisTurn = false;
+    // Set to the new level only when this prompt genuinely CHANGES it, so the
+    // ruleset re-injection below is paid for by an actual switch and nothing
+    // else (#975). Compared through canonicalModeLabel because the two
+    // spellings of wenyan-full both reach storage — parseModeChange writes the
+    // 'wenyan' alias while getDefaultMode accepts either — and a raw compare
+    // would read that no-op as a switch. A null previous mode (caveman was
+    // off) counts as a change: the model holds no ruleset at all in that case,
+    // which is the strongest reason to send one.
+    let switchedToLevel = null;
     if (change && change.action === 'set') {
       const mode = change.mode;
       if (INDEPENDENT_MODES.has(mode)) {
         // Save the prose mode being displaced — but never overwrite an
         // already-saved one with another independent mode (/caveman-commit
         // followed by /caveman-review must still restore the original).
-        const current = resolveActiveMode(claudeDir, sessionId);
-        if (current && !INDEPENDENT_MODES.has(current)) {
-          writeSessionPrev(claudeDir, sessionId, current);
+        if (modeBeforeChange && !INDEPENDENT_MODES.has(modeBeforeChange)) {
+          writeSessionPrev(claudeDir, sessionId, modeBeforeChange);
         }
         setIndependentThisTurn = true;
+      } else if (canonicalModeLabel(mode) !== canonicalModeLabel(modeBeforeChange)) {
+        switchedToLevel = mode;
       }
       recordModeChange(claudeDir, mode, sessionId); // #601: timestamped transition log
       writeSessionMode(claudeDir, sessionId, mode);
@@ -310,17 +361,35 @@ function handle(raw) {
     // reinforcement output below — it never deletes or writes the flag file.
     const reinforce = activeMode && !INDEPENDENT_MODES.has(activeMode)
       && getDefaultMode(data.cwd) !== 'off'
-      ? `CAVEMAN MODE ACTIVE (${activeMode}) — session ruleset applies. ` +
-        "Terseness (drop articles/filler/pleasantries/hedging, fragments OK) is the FLOOR for low-value turns (status/lookup/recall), not a cap. " +
-        "High-value turns (debug/design/tradeoff/review): spend for the turn's value, reason in full prose, compress only the final statement, never the reasoning. " +
-        "Code/commits/security: write normal. " +
-        "Unsure which? Err verbose: a silent skipped step costs more than visible length."
+      ? reinforcementForMode(activeMode)
       : null;
 
-    // One write, so an unresolved-level notice and the per-turn reinforcement
-    // can both land on the same turn. Only one hookSpecificOutput per hook run
-    // is read, so emitting them separately would drop whichever came second.
-    const context = [notice, reinforce].filter(Boolean).join('\n\n');
+    // A level switch has to carry the new level's RULES, not just relabel the
+    // banner (#975). SessionStart injected exactly one level's ruleset and it
+    // is still the previous level's in the model's context — its intensity row
+    // and its "Default: **full**" line included — so a reminder that merely
+    // names the new level leaves the model working from the old one's rules,
+    // silently and self-confirmingly: the banner agrees with the user while
+    // the output does not.
+    //
+    // `reinforce` is the gate as well as the reminder: it already encodes both
+    // "caveman is active and not an independent mode" and the #634 repo
+    // opt-out, so a project with defaultMode "off" gets neither line.
+    // A SKILL.md that cannot be read degrades to the reminder alone — the
+    // standalone hook install with no skills dir, the case activate.js covers
+    // with its hardcoded fallback.
+    let ruleset = null;
+    if (switchedToLevel && reinforce) {
+      const body = loadFilteredRuleset(switchedToLevel, __dirname);
+      if (body) ruleset = rulesetBanner(switchedToLevel) + '\n\n' + body;
+    }
+
+    // One write, so an unresolved-level notice, a switch's ruleset and the
+    // per-turn reinforcement can all land on the same turn. Only one
+    // hookSpecificOutput per hook run is read, so emitting them separately
+    // would drop whichever came second. The reminder goes last: it is the
+    // directive for THIS reply, and recency is the point of it.
+    const context = [notice, ruleset, reinforce].filter(Boolean).join('\n\n');
     if (context) {
       process.stdout.write(JSON.stringify({
         hookSpecificOutput: {

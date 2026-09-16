@@ -2,18 +2,17 @@
 name: caveman-stats
 author: "Julius Brussee via galeep"
 description: >
-  Show real token usage and estimated savings for the current session, read
-  from the session log. Trigger: /caveman-stats.
+  Show recorded output and cache-read token usage and mode attribution for
+  the current Claude Code session, or locate the host's native usage report.
+  Trigger: /caveman-stats.
 ---
 
-When this skill fires (the user typed `/caveman-stats`), run the stats script and show its stdout to the user verbatim. Do not recompute or estimate the numbers yourself.
+In Claude Code, `src/hooks/caveman-mode-tracker.js` resolves `src/hooks/caveman-stats.js` next to itself and runs it on `/caveman-stats`. The hook does not block the prompt: it supplies the report through `hookSpecificOutput.additionalContext` with an instruction to print it verbatim inside a fenced code block. Do exactly that, and do not calculate, recompute or re-round the numbers yourself.
 
-```bash
-node "${CLAUDE_PLUGIN_ROOT}/src/hooks/caveman-stats.js"
-```
+In Gemini CLI, direct the user to `/stats model` for current session token usage or `/stats session` for session statistics. Gemini custom commands are prompts; they cannot invoke the built-in command or read its live session metrics. Never read Claude Code transcripts as Gemini usage. In other hosts, use a native usage report if one is available; otherwise say that current session usage is unavailable. The Claude reader and its lifetime history apply only to Claude Code. Savings remain unknown in every host without a measured comparison.
 
-The script reads the current Claude Code session log directly, auto-locating the most recent session under `~/.claude/projects/`, and prints real token usage plus an estimated savings figure from the benchmark. Optional flags: `--share` (shareable summary), `--all` (all sessions), `--since 7d` or `--since 24h` (limit the window).
+The report shows recorded output and cache-read tokens, response counts, and mode attribution where available. Savings are unknown: the transcript has no measured comparison without Caveman. Do not infer saved tokens, percentages, dollars, rule overhead, or a net result from output counts or the current mode.
 
-Why the skill runs the script instead of relying on a hook: historically `caveman-mode-tracker.js` returned `decision: "block"` with the stats as the reason, but the harness drops that block-decision when `/caveman-stats` dispatches as a skill, so nothing renders. Running the script from the skill sidesteps that.
+`--all` and `--since 7d` aggregate the latest recorded output count per session. `--share` reports observed usage with savings unknown. Historical `est_saved_*` fields are ignored; their original history rows remain on disk. The statusline shows the active mode without the retired savings badge.
 
-Output also includes `Est. rule overhead` and `Est. net` lines wherever a savings estimate exists with a known turn count. Rule overhead is the estimated per-turn INPUT-token cost of the injected caveman rules (default 1,250 tokens/turn, override with `CAVEMAN_RULE_OVERHEAD_TOKENS`) times the turn count. Net is savings minus that overhead — when negative, the output says so plainly and suggests turning caveman off for that workload, rather than hiding the net-negative regime behind a gross-savings number (see `docs/HONEST-NUMBERS.md`).
+Original/current memory-file pairs are reported by their measured byte sizes. Those file-size differences do not establish provider token or billing savings. See `docs/HONEST-NUMBERS.md`.
