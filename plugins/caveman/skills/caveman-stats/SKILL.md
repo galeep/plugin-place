@@ -2,10 +2,8 @@
 name: caveman-stats
 author: "Julius Brussee via galeep"
 description: >
-  Show real token usage and estimated savings for the current session.
-  Reads directly from the Claude Code session log — no AI estimation.
-  Triggers on /caveman-stats. Output is injected by the mode-tracker hook;
-  the model itself does not compute the numbers.
+  Show real token usage and estimated savings for the current session, read
+  from the session log. Trigger: /caveman-stats.
 ---
 
 When this skill fires (the user typed `/caveman-stats`), run the stats script and show its stdout to the user verbatim. Do not recompute or estimate the numbers yourself.

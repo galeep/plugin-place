@@ -58,16 +58,36 @@ function requireSibling(name, isUsable) {
 // and the process still exits 0 with stdin drained (never a broken pipe, #397).
 // getDefaultMode's stub value is never consulted in that state — the only call
 // site is gated behind an activeMode that readFlag can no longer produce.
-const { getDefaultMode, safeWriteFlag, readFlag, recordModeChange, VALID_MODES } = requireSibling('caveman-config', (m) =>
+const cavemanConfig = requireSibling('caveman-config', (m) =>
   m && typeof m.getDefaultMode === 'function' && typeof m.safeWriteFlag === 'function'
     && typeof m.readFlag === 'function' && typeof m.recordModeChange === 'function'
-    && Array.isArray(m.VALID_MODES)) || {
+    && Array.isArray(m.VALID_MODES));
+const { getDefaultMode, safeWriteFlag, readFlag, recordModeChange, VALID_MODES } = cavemanConfig || {
   getDefaultMode: () => 'full',
   safeWriteFlag: () => {},
   readFlag: () => null,
   recordModeChange: () => {},
   VALID_MODES: [],
 };
+
+// Per-session helpers, resolved individually rather than folded into the shape
+// check above: a caveman-config.js from before per-session state satisfies that
+// check, and failing the whole module over the newer exports would turn "mode
+// still tracked, machine-wide" into "hook is a no-op". Each stub reproduces the
+// pre-per-session behavior against the legacy flag instead.
+const cfg = cavemanConfig || {};
+const validateSessionId = cfg.validateSessionId || (() => null);
+const resolveActiveMode = cfg.resolveActiveMode || (() => {
+  const m = readFlag(flagPath);
+  return (!m || m === 'off') ? null : m;
+});
+const writeSessionMode = cfg.writeSessionMode || ((dir, sid, modeOrNull) => {
+  if (!modeOrNull || modeOrNull === 'off') removeFlag(flagPath);
+  else safeWriteFlag(flagPath, modeOrNull);
+});
+const writeSessionPrev = cfg.writeSessionPrev || ((dir, sid, mode) => safeWriteFlag(prevPath, mode));
+const readSessionPrev = cfg.readSessionPrev || (() => readFlag(prevPath));
+const clearSessionPrev = cfg.clearSessionPrev || (() => removeFlag(prevPath));
 const { parseModeChange, INDEPENDENT_MODES } = requireSibling('caveman-parse', (m) =>
   m && typeof m.parseModeChange === 'function' && m.INDEPENDENT_MODES instanceof Set) || {
   parseModeChange: () => null,
@@ -91,14 +111,25 @@ function removeFlag(path) {
 }
 
 let input = '';
-process.stdin.on('data', chunk => { input += chunk; });
-// Abnormal stdin close (broken pipe, parent crash) emits 'error'; without a
-// listener Node throws it as an uncaught exception and the hook exits
-// non-zero — a spurious hook failure (#538). Hooks must always exit 0.
-process.stdin.on('error', () => process.exit(0));
-process.stdin.on('end', () => {
+let handled = false;
+
+// Act on the first COMPLETE JSON payload rather than waiting for EOF. The host
+// writes one object and closes, but under the Windows pipe implementation that
+// close can lag arbitrarily (#729/#833) — and this hook is registered with a 5s
+// budget, so a lagging EOF spends the whole budget and the host kills us before
+// the flag is ever written. Parsing per chunk costs one JSON.parse of a payload
+// we are about to parse anyway.
+function handle(raw) {
+  if (handled) return;
+  handled = true;
   try {
-    const data = JSON.parse(input);
+    const data = JSON.parse(raw);
+
+    // Scopes every read and write below to this session. null when absent or
+    // malformed, in which case the helpers above fall back to the legacy
+    // machine-wide flag — i.e. exactly the pre-per-session behavior.
+    const sessionId = validateSessionId(data.session_id);
+
     // Collapse whitespace so phrase triggers still match multiline prompts —
     // every regex below sees a single-line prompt (#598).
     let prompt = (data.prompt || '').trim().toLowerCase().replace(/\s+/g, ' ');
@@ -150,13 +181,22 @@ process.stdin.on('end', () => {
         const statsPath = path.join(__dirname, 'caveman-stats.js');
         const argv = [statsPath];
         if (data.transcript_path) argv.push('--session-file', data.transcript_path);
+        // Lets stats drop mode-log rows belonging to other windows instead of
+        // joining them onto this session's timeline.
+        if (sessionId) argv.push('--session-id', sessionId);
         if (tailArgs.includes('--share')) argv.push('--share');
         if (tailArgs.includes('--all')) argv.push('--all');
         const sinceIdx = tailArgs.indexOf('--since');
         if (sinceIdx !== -1 && tailArgs[sinceIdx + 1]) {
           argv.push('--since', tailArgs[sinceIdx + 1]);
         }
-        block = execFileSync(process.execPath, argv, { encoding: 'utf8', timeout: 5000 }).trim();
+        // 2.5s. Hook registration allows 30s for slow Windows process startup,
+        // while this child watchdog still bounds optional context loading.
+        // already spent its own Node startup; giving the child the host's
+        // entire budget means the host kills the hook before the child's own
+        // timeout can fire and produce the fallback message. Windows process
+        // spawn is ~10x macOS before antivirus (#819), so the margin is real.
+        block = execFileSync(process.execPath, argv, { encoding: 'utf8', timeout: 2500 }).trim();
       } catch (e) {
         block = 'caveman-stats: could not run stats script.\nTry manually: node hooks/caveman-stats.js';
       }
@@ -212,18 +252,21 @@ process.stdin.on('end', () => {
         // Save the prose mode being displaced — but never overwrite an
         // already-saved one with another independent mode (/caveman-commit
         // followed by /caveman-review must still restore the original).
-        const current = readFlag(flagPath);
+        const current = resolveActiveMode(claudeDir, sessionId);
         if (current && !INDEPENDENT_MODES.has(current)) {
-          safeWriteFlag(prevPath, current);
+          writeSessionPrev(claudeDir, sessionId, current);
         }
         setIndependentThisTurn = true;
       }
-      recordModeChange(claudeDir, mode); // #601: timestamped transition log
-      safeWriteFlag(flagPath, mode);
+      recordModeChange(claudeDir, mode, sessionId); // #601: timestamped transition log
+      writeSessionMode(claudeDir, sessionId, mode);
     } else if (change && change.action === 'clear') {
-      recordModeChange(claudeDir, null); // #601
-      removeFlag(flagPath);
-      removeFlag(prevPath);
+      // Durable off: writeSessionMode stores the literal 'off' for this session
+      // (and unlinks the legacy mirror), so the next SessionStart cannot mistake
+      // deactivation for "never set" and re-arm caveman on the next compaction.
+      recordModeChange(claudeDir, null, sessionId); // #601
+      writeSessionMode(claudeDir, sessionId, null);
+      clearSessionPrev(claudeDir, sessionId);
     }
 
     // Per-turn reinforcement: emit a short reminder when caveman is active.
@@ -233,25 +276,29 @@ process.stdin.on('end', () => {
     //
     // Skip independent modes (commit, review, compress) — they have their own
     // skill behavior and the base caveman rules would conflict.
-    // readFlag enforces symlink-safe read + size cap + VALID_MODES whitelist.
-    // If the flag is missing, corrupted, oversized, or a symlink pointing at
-    // something like ~/.ssh/id_rsa, readFlag returns null and we emit nothing
-    // — never inject untrusted bytes into model context.
-    let activeMode = readFlag(flagPath);
+    // resolveActiveMode enforces symlink-safe read + size cap + VALID_MODES
+    // whitelist, and treats both a missing file and a durable 'off' as "no
+    // mode". If the state is missing, corrupted, oversized, or a symlink
+    // pointing at something like ~/.ssh/id_rsa, it returns null and we emit
+    // nothing — never inject untrusted bytes into model context.
+    let activeMode = resolveActiveMode(claudeDir, sessionId);
 
     // One-shot restore (#599): an independent mode set on a PREVIOUS prompt
     // has served its turn — bring back the prose mode that was active before
     // it, or deactivate if caveman wasn't active then.
     if (activeMode && INDEPENDENT_MODES.has(activeMode) && !setIndependentThisTurn) {
-      const prev = readFlag(prevPath);
-      removeFlag(prevPath);
-      if (prev && !INDEPENDENT_MODES.has(prev)) {
-        recordModeChange(claudeDir, prev); // #601
-        safeWriteFlag(flagPath, prev);
+      const prev = readSessionPrev(claudeDir, sessionId);
+      clearSessionPrev(claudeDir, sessionId);
+      // `prev !== 'off'` is not redundant: prev is stored literally, and
+      // restoring a stored 'off' as a mode would inject "CAVEMAN MODE ACTIVE
+      // (off)" for a session that had deliberately turned caveman off.
+      if (prev && !INDEPENDENT_MODES.has(prev) && prev !== 'off') {
+        recordModeChange(claudeDir, prev, sessionId); // #601
+        writeSessionMode(claudeDir, sessionId, prev);
         activeMode = prev;
       } else {
-        recordModeChange(claudeDir, null); // #601
-        removeFlag(flagPath);
+        recordModeChange(claudeDir, null, sessionId); // #601
+        writeSessionMode(claudeDir, sessionId, null);
         activeMode = null;
       }
     }
@@ -285,4 +332,36 @@ process.stdin.on('end', () => {
   } catch (e) {
     // Silent fail
   }
+}
+
+// StringDecoder semantics: a multi-byte character split across two chunks is
+// held until it is complete, instead of each half being coerced to a lone
+// replacement char by `'' + buffer`. Matters more now that the payload is
+// parsed per chunk rather than once at EOF.
+process.stdin.setEncoding('utf8');
+process.stdin.on('data', chunk => {
+  input += chunk;
+  // A partial payload throws here and we simply wait for more bytes.
+  try { JSON.parse(input); } catch (e) { return; }
+  handle(input);
+  // pause() stops the flow but the 'data' listener has REFERENCED the stdin
+  // handle, so the event loop stays alive until the host closes the write end.
+  // On Windows that close lags arbitrarily (#729/#833), so the hook sat idle
+  // with its work already done until the 5s budget expired and the host killed
+  // it — the shape of #819 (timeouts on turns that measure ~56ms of real work).
+  // unref() drops the handle from the loop without closing the fd, so we exit
+  // as soon as stdout has flushed.
+  process.stdin.pause();
+  try { process.stdin.unref(); } catch (e) {}
 });
+// Abnormal stdin close (broken pipe, parent crash) emits 'error'; without a
+// listener Node throws it as an uncaught exception and the hook exits
+// non-zero — a spurious hook failure (#538). Hooks must always exit 0.
+process.stdin.on('error', () => process.exit(0));
+// Same failure, output side (#397): the harness can close its end of our
+// stdout/stderr after this hook has already written a payload, and an
+// unlistened 'error' there throws just as loudly.
+for (const stream of [process.stdout, process.stderr]) {
+  stream.on('error', () => process.exit(0));
+}
+process.stdin.on('end', () => handle(input));
