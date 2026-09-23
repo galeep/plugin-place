@@ -115,9 +115,12 @@ For in-depth help on specific components:
 ### Specialized Guides
 - `references/broader_impacts.md` - NSF broader impacts strategies
 - `references/specific_aims_guide.md` - NIH Specific Aims page mastery
-- `references/budget_preparation.md` - Budget development (coming soon)
-- `references/review_criteria.md` - Comparative review criteria (coming soon)
-- `references/timeline_planning.md` - Project management (coming soon)
+- `references/core_components.md` - Every proposal section in detail, including budget and justification
+- `references/review_criteria.md` - Comparative review criteria by agency
+- `references/writing_principles.md` - What separates funded proposals from competent ones
+- `references/proposal_types_and_resubmission.md` - Proposal types and resubmission strategy
+Project timelines and milestone planning are covered inside
+`references/core_components.md` rather than in a file of their own.
 
 ### Templates
 - `assets/nsf_project_summary_template.md`

@@ -1,8 +1,8 @@
 {
   "scientific-agent-skills": {
-    "version": "b2a969eb56d92c454e682138cd93587d77b64b11",
-    "sha": "b2a969eb56d92c454e682138cd93587d77b64b11",
-    "describe": "b2a969eb56d9",
+    "version": "49c6e97775eaa18ba791bebe23162a70ae601c18",
+    "sha": "49c6e97775eaa18ba791bebe23162a70ae601c18",
+    "describe": "49c6e97775ea",
     "repo": "K-Dense-AI/scientific-agent-skills"
   },
   "scientific-agents": {
