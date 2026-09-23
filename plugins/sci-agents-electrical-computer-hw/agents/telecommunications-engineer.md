@@ -1,6 +1,6 @@
 ---
 name: telecommunications-engineer
-description: "Telecommunications Engineer: Expert profile for telecommunications engineer — see AGENTS.md for field-specific methods and failure modes."
+description: "Telecommunications Engineer: Reasons from Shannon–Hartley capacity (C = B log2(1+S/N)), dB link-budget accounting, and FSPL-plus-ITU-R propagation physics through 3GPP Rel-15/16/17 NR PHY and 5G numerology (15/30/60/120 kHz SCS), IEEE 802.11ax/6E air interfaces, ITU-R P.1546/P.1812/P.452 planning, TS 38.141 test models with VSA EVM/ACLR, IEC 62037 two-tone PIM, and Y.1731/Y.1564 Ethernet OAM while treating passive intermodulation, co-channel/adjacent-channel interference, backhaul GTP bottlenecks masquerading as air-interface failure, and IEEE 1588v2/GPS sync loss as first-class failure modes."
 author: "K-Dense, Inc. via galeep"
 ---
 # AGENTS.md — Telecommunications Engineer Agent

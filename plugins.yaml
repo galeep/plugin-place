@@ -1,37 +1,24 @@
-# plugin-place: marketplace manifest source-of-truth
-#
-# The build script reads this file and generates:
-#   - .claude-plugin/marketplace.json
-#   - plugins/<name>/.claude-plugin/plugin.json  (for every `kind: built` plugin)
-#   - plugins/<name>/skills/*                    (copied from the upstream submodule)
-#
-# Plugin kinds:
-#   built:    skills copied in from an upstream submodule per the `skills:` list
-#   vendored: an upstream submodule that is already a complete plugin; we point
-#             marketplace.json at the submodule path directly
-#   local:    a plugin authored in this repo (room to grow)
-
 marketplace:
   name: plugin-place
-  description: "Curated marketplace of Claude Code plugins. Built from upstream skill collections and direct plugin vendoring."
-  version: "0.1.0"
+  description: Curated marketplace of Claude Code plugins. Built from upstream skill
+    collections and direct plugin vendoring.
+  version: 0.1.0
   owner:
     name: galeep
   homepage: https://github.com/galeep/plugin-place
-
 upstreams:
   scientific-agent-skills:
     submodule: vendor/scientific-agent-skills
     skills_root: skills
     pinned_sha: b2a969eb56d92c454e682138cd93587d77b64b11
     upstream_repo: K-Dense-AI/scientific-agent-skills
-    license: MIT   # fallback only; real license resolved per-skill
+    license: MIT
     license_fingerprint: fba2e6dd07a3c2892b92bb8d75bf923b85d1824d268c392da7920862dcbd3a36
   scientific-agents:
     submodule: vendor/scientific-agents
     agents_root: scientific-agents
     catalog: catalog.json
-    pinned_sha: 896ed6ed1e1a6686572db06ca59fd1c1b0055ca7
+    pinned_sha: acbd93db7ed551f703225c38ed90a30bd95d23be
     upstream_repo: K-Dense-AI/scientific-agents
     license: MIT
     license_fingerprint: 38f3257a03cfdb7bae8a5595701fdf2ddc107f95504b0468328246afdff593bf
@@ -41,260 +28,243 @@ upstreams:
     upstream_repo: K-Dense-AI/claude-scientific-writer
     license: MIT
     license_fingerprint: 82c0938ae85bbe1c66fe7e1efb9551e7f4ddf1f937b0cb0d1e8a6a3c27ad5448
-    # fallback author for any SKILL.md lacking metadata.skill-author
-    author: "K-Dense Inc."
+    author: K-Dense Inc.
   caveman:
     submodule: vendor/caveman
     pinned_tag: v2.7.0
     upstream_repo: JuliusBrussee/caveman
     license: MIT
     license_fingerprint: 1262f1188ab44564e59ec4eed1784bd93c8716f1715b7c447d094fdbabe83b59
-    # caveman skill files carry no author; attribute the upstream author
-    author: "Julius Brussee"
-
+    author: Julius Brussee
 plugins:
-  # ──────────────────────────────────────────────────────────────────────
-  # Built from scientific-agent-skills @ v2.38.0  (135 skills, 17 plugins)
-  # ──────────────────────────────────────────────────────────────────────
-
-  - name: sci-bioinformatics-genomics
-    kind: built
-    upstream: scientific-agent-skills
-    category: bioinformatics
-    description: "Sequence analysis, single-cell RNA-seq, gene regulatory networks, variant data, phylogenetics, and biomedical database lookup."
-
-  - name: sci-cheminformatics-drug-discovery
-    kind: built
-    upstream: scientific-agent-skills
-    category: chemistry
-    description: "Cheminformatics, molecular ML featurization, docking, and medicinal chemistry workflows."
-
-  - name: sci-proteomics-mass-spec
-    kind: built
-    upstream: scientific-agent-skills
-    category: chemistry
-    description: "LC-MS/MS processing, spectral matching, peptide ID, and glycoengineering."
-
-  - name: sci-clinical-research
-    kind: built
-    upstream: scientific-agent-skills
-    category: clinical
-    description: "Clinical decision support, clinical/case/trial reports, treatment plans, and ISO 13485 QMS docs."
-
-  - name: sci-healthcare-ai
-    kind: built
-    upstream: scientific-agent-skills
-    category: clinical
-    description: "EHR/physiological-signal ML: PyHealth pipelines and NeuroKit2 biosignal processing."
-
-  - name: sci-medical-imaging
-    kind: built
-    upstream: scientific-agent-skills
-    category: imaging
-    description: "DICOM, whole-slide imaging, computational pathology, and NCI Imaging Data Commons."
-
-  - name: sci-machine-learning
-    kind: built
-    upstream: scientific-agent-skills
-    category: ml
-    description: "General ML/DL: scikit-learn, PyTorch Lightning, transformers, RL, time series, GNNs, Bayesian, SHAP, plus GPU and compute helpers."
-
-  - name: sci-materials-chemistry
-    kind: built
-    upstream: scientific-agent-skills
-    category: chemistry
-    description: "Materials science with pymatgen and constraint-based metabolic modeling with COBRApy."
-
-  - name: sci-physics-astronomy
-    kind: built
-    upstream: scientific-agent-skills
-    category: physics
-    description: "Astronomy (astropy), symbolic math (sympy), open quantum systems (qutip), and quantum frameworks (qiskit, cirq, pennylane)."
-
-  - name: sci-engineering-simulation
-    kind: built
-    upstream: scientific-agent-skills
-    category: engineering
-    description: "Discrete-event simulation, multi-objective optimization, CFD, and molecular dynamics."
-
-  - name: sci-data-analysis-viz
-    kind: built
-    upstream: scientific-agent-skills
-    category: data
-    description: "Stats, EDA, network analysis, survival analysis, plotting, big-data dataframes (dask/polars/vaex/zarr), MATLAB, and US fiscal data."
-
-  - name: sci-geospatial
-    kind: built
-    upstream: scientific-agent-skills
-    category: data
-    description: "Geospatial science: GIS, remote sensing, spatial stats, and earth-observation ML."
-
-  - name: sci-lab-automation
-    kind: built
-    upstream: scientific-agent-skills
-    category: lab
-    description: "Lab platforms and ELNs: Benchling, DNAnexus, LatchBio, OMERO, Opentrons, protocols.io, PyLabRobot, Ginkgo, LabArchives, plus flow cytometry and Neuropixels."
-
-  - name: sci-scientific-communication
-    kind: built
-    upstream: scientific-agent-skills
-    category: communication
-    description: "Lit review, peer review, writing, citations, posters, slides, schematics, infographics, and academic web search. (For docx/pdf/pptx/xlsx, install kdense-document-skills.)"
-
-  - name: kdense-document-skills
-    kind: built
-    upstream: scientific-agent-skills
-    category: communication
-    description: "General-purpose document tools: read/write/edit .docx (Word), .pdf, .pptx (PowerPoint), and .xlsx (Excel/spreadsheets). Useful complement to any scientific-writing workflow."
-
-  - name: sci-multi-omics
-    kind: built
-    upstream: scientific-agent-skills
-    category: bioinformatics
-    description: "Multi-modal omics integration: DepMap, PrimeKG, and scvi-tools deep generative models."
-
-  - name: sci-protein-engineering
-    kind: built
-    upstream: scientific-agent-skills
-    category: bioinformatics
-    description: "Protein language models (ESM) and the Adaptyv Bio Foundry API."
-
-  - name: sci-research-methodology
-    kind: built
-    upstream: scientific-agent-skills
-    category: methodology
-    description: "Hypothesis generation, grant writing, brainstorming, critical-thinking eval, scenario analysis, and cognitive/meta tools."
-
-
-  # ──────────────────────────────────────────────────────────────────────
-  # Agent plugins: K-Dense scientific-agents profiles converted to subagents
-  #   Membership derived from taxonomy/agents.yaml (one mechanism, coverage-gated).
-  # ──────────────────────────────────────────────────────────────────────
-
-  - name: sci-agents-molecular-cell-biology
-    kind: agents
-    upstream: scientific-agents
-    category: bioinformatics
-    description: "Expert-thinking subagents for molecular & cell biology: genetics, genomics, omics, biochemistry, biophysics, microbiology, immunology, virology, and structural/synthetic/systems biology."
-
-  - name: sci-agents-organismal-eco-biology
-    kind: agents
-    upstream: scientific-agents
-    category: bioinformatics
-    description: "Expert-thinking subagents for organismal, ecological, and evolutionary biology: zoology, botany, physiology, taxonomy, phylogenetics, conservation, and marine/field biology."
-
-  - name: sci-agents-medical-specialties
-    kind: agents
-    upstream: scientific-agents
-    category: clinical
-    description: "Expert-thinking subagents for clinical medical specialties: cardiology, oncology, radiology, pathology, neurology, surgery, anesthesiology, pharmacology, and related fields."
-
-  - name: sci-agents-clinical
-    kind: agents
-    upstream: scientific-agents
-    category: clinical
-    description: "Expert-thinking subagents for clinical, population, and translational science: epidemiology, clinical trials, regulatory affairs, pharmacovigilance, and public/global health."
-
-  - name: sci-agents-chemistry
-    kind: agents
-    upstream: scientific-agents
-    category: chemistry
-    description: "Expert-thinking subagents for chemistry: organic, inorganic, physical, analytical, electrochemistry, catalysis, spectroscopy, mass spectrometry, and crystallography."
-
-  - name: sci-agents-materials-nano
-    kind: agents
-    upstream: scientific-agents
-    category: chemistry
-    description: "Expert-thinking subagents for materials science and nanotechnology: metallurgy, ceramics, composites, polymers, semiconductors, energy storage, and nanomaterials."
-
-  - name: sci-agents-physics
-    kind: agents
-    upstream: scientific-agents
-    category: physics
-    description: "Expert-thinking subagents for physics: quantum, optics/photonics, plasma/fusion, particle, nuclear, condensed-matter, statistical, and atomic-molecular-optical physics."
-
-  - name: sci-agents-astronomy-space
-    kind: agents
-    upstream: scientific-agents
-    category: physics
-    description: "Expert-thinking subagents for astronomy and space science: astrophysics, cosmology, planetary science, heliophysics, exoplanets, and astrodynamics."
-
-  - name: sci-agents-earth-environment
-    kind: agents
-    upstream: scientific-agents
-    category: earth-science
-    description: "Expert-thinking subagents for earth, environmental, ocean, and atmospheric science: geology, geophysics, climate, oceanography, hydrology, remote sensing, and sustainability."
-
-  - name: sci-agents-engineering
-    kind: agents
-    upstream: scientific-agents
-    category: engineering
-    description: "Expert-thinking subagents for mechanical, civil, chemical, aerospace, and process engineering: fluid dynamics, structures, manufacturing, thermodynamics, and reliability."
-
-  - name: sci-agents-electrical-computer-hw
-    kind: agents
-    upstream: scientific-agents
-    category: engineering
-    description: "Expert-thinking subagents for electrical, electronics, and computer-hardware engineering: power, RF/photonics, semiconductors, embedded/control systems, signals, and robotics."
-
-  - name: sci-agents-cs-ai-data
-    kind: agents
-    upstream: scientific-agents
-    category: ml
-    description: "Expert-thinking subagents for computer science, AI, and data: machine learning, systems, theory, security, NLP, computer vision, and computational/cognitive science."
-
-  - name: sci-agents-math-stats-or
-    kind: agents
-    upstream: scientific-agents
-    category: methodology
-    description: "Expert-thinking subagents for mathematics, statistics, and operations research: pure/applied math, probability, Bayesian/causal inference, optimization, and numerical analysis."
-
-  - name: sci-agents-agri-food-vet
-    kind: agents
-    upstream: scientific-agents
-    category: agriculture
-    description: "Expert-thinking subagents for agriculture, food, and veterinary science: agronomy, soil science, crop/animal science, food science, aquaculture, and veterinary medicine."
-
-  # ──────────────────────────────────────────────────────────────────────
-  # Vendored intact plugin
-  # ──────────────────────────────────────────────────────────────────────
-
-  - name: claude-scientific-writer
-    kind: vendored
-    upstream: claude-scientific-writer
-    category: communication
-    # No skill count and no "only X is unique" claim: both rotted silently.
-    # The text said "23 skills, only paper-2-web is unique" while the built
-    # plugin had 22 and paper-2-web was not among them. A hand-maintained tally
-    # of a generated tree drifts the moment upstream moves, and nothing checks
-    # it. The sync workflow now names newly-overlapping skills in the PR body
-    # instead (see .github/workflows/sync-upstream.yml).
-    description: "K-Dense's scientific writing toolkit (papers, grants, posters, clinical reports, document conversion) plus a /scientific-writer-init command. NOTE: this is a BUNDLE — its skills also ship in the focused sci-* and kdense-* plugins. To avoid duplicate skills, install EITHER claude-scientific-writer OR the focused plugins, not both."
-
-  # ──────────────────────────────────────────────────────────────────────
-  # Vendored-whole plugin with downstream patches
-  #   Repo root is itself the plugin; hooks live in src/ and are wired by a
-  #   custom plugin.json the generic `vendored` path would drop. `vendored-whole`
-  #   preserves that manifest + src/, then applies patches/caveman.json.
-  # ──────────────────────────────────────────────────────────────────────
-
-  - name: caveman
-    kind: vendored-whole
-    upstream: caveman
-    category: productivity
-    # patched: true makes a missing patches/caveman.json a hard build error
-    # rather than a silent unpatched publish.
-    patched: true
-    description: "Caveman: ultra-compressed communication mode (lite/full/ultra/wenyan). Cuts ~75% of output tokens while keeping technical accuracy. Downstream-patched so terseness reads as value-proportional allocation: a floor for low-value turns, not a cap on high-value ones (see patches/caveman.json)."
-
-  # ──────────────────────────────────────────────────────────────────────
-  # Local plugin — authored in-repo, never regenerated (kind: local).
-  #   Files under plugins/laconic/ are the source of truth; render.py leaves
-  #   them untouched (clean_built_plugins skips local) and just emits a
-  #   marketplace entry pointing at them. No submodule, no patch layer.
-  # ──────────────────────────────────────────────────────────────────────
-
-  - name: laconic
-    kind: local
-    category: productivity
-    description: "Laconic: a value-proportional communication register engine. Ships the 'laconic' register: elliptical but literate, a sharp colleague writing fast. Drop the function words a reader restores for free, keep the logic connectives, notebook symbols where they decode. Compresses the report, never the work behind it. Registers are data files under registers/; drop in a new one to add a voice, no code change."
+- name: sci-bioinformatics-genomics
+  kind: built
+  upstream: scientific-agent-skills
+  category: bioinformatics
+  description: Sequence analysis, single-cell RNA-seq, gene regulatory networks, variant
+    data, phylogenetics, and biomedical database lookup.
+- name: sci-cheminformatics-drug-discovery
+  kind: built
+  upstream: scientific-agent-skills
+  category: chemistry
+  description: Cheminformatics, molecular ML featurization, docking, and medicinal
+    chemistry workflows.
+- name: sci-proteomics-mass-spec
+  kind: built
+  upstream: scientific-agent-skills
+  category: chemistry
+  description: LC-MS/MS processing, spectral matching, peptide ID, and glycoengineering.
+- name: sci-clinical-research
+  kind: built
+  upstream: scientific-agent-skills
+  category: clinical
+  description: Clinical decision support, clinical/case/trial reports, treatment plans,
+    and ISO 13485 QMS docs.
+- name: sci-healthcare-ai
+  kind: built
+  upstream: scientific-agent-skills
+  category: clinical
+  description: 'EHR/physiological-signal ML: PyHealth pipelines and NeuroKit2 biosignal
+    processing.'
+- name: sci-medical-imaging
+  kind: built
+  upstream: scientific-agent-skills
+  category: imaging
+  description: DICOM, whole-slide imaging, computational pathology, and NCI Imaging
+    Data Commons.
+- name: sci-machine-learning
+  kind: built
+  upstream: scientific-agent-skills
+  category: ml
+  description: 'General ML/DL: scikit-learn, PyTorch Lightning, transformers, RL,
+    time series, GNNs, Bayesian, SHAP, plus GPU and compute helpers.'
+- name: sci-materials-chemistry
+  kind: built
+  upstream: scientific-agent-skills
+  category: chemistry
+  description: Materials science with pymatgen and constraint-based metabolic modeling
+    with COBRApy.
+- name: sci-physics-astronomy
+  kind: built
+  upstream: scientific-agent-skills
+  category: physics
+  description: Astronomy (astropy), symbolic math (sympy), open quantum systems (qutip),
+    and quantum frameworks (qiskit, cirq, pennylane).
+- name: sci-engineering-simulation
+  kind: built
+  upstream: scientific-agent-skills
+  category: engineering
+  description: Discrete-event simulation, multi-objective optimization, CFD, and molecular
+    dynamics.
+- name: sci-data-analysis-viz
+  kind: built
+  upstream: scientific-agent-skills
+  category: data
+  description: Stats, EDA, network analysis, survival analysis, plotting, big-data
+    dataframes (dask/polars/vaex/zarr), MATLAB, and US fiscal data.
+- name: sci-geospatial
+  kind: built
+  upstream: scientific-agent-skills
+  category: data
+  description: 'Geospatial science: GIS, remote sensing, spatial stats, and earth-observation
+    ML.'
+- name: sci-lab-automation
+  kind: built
+  upstream: scientific-agent-skills
+  category: lab
+  description: 'Lab platforms and ELNs: Benchling, DNAnexus, LatchBio, OMERO, Opentrons,
+    protocols.io, PyLabRobot, Ginkgo, LabArchives, plus flow cytometry and Neuropixels.'
+- name: sci-scientific-communication
+  kind: built
+  upstream: scientific-agent-skills
+  category: communication
+  description: Lit review, peer review, writing, citations, posters, slides, schematics,
+    infographics, and academic web search. (For docx/pdf/pptx/xlsx, install kdense-document-skills.)
+- name: kdense-document-skills
+  kind: built
+  upstream: scientific-agent-skills
+  category: communication
+  description: 'General-purpose document tools: read/write/edit .docx (Word), .pdf,
+    .pptx (PowerPoint), and .xlsx (Excel/spreadsheets). Useful complement to any scientific-writing
+    workflow.'
+- name: sci-multi-omics
+  kind: built
+  upstream: scientific-agent-skills
+  category: bioinformatics
+  description: 'Multi-modal omics integration: DepMap, PrimeKG, and scvi-tools deep
+    generative models.'
+- name: sci-protein-engineering
+  kind: built
+  upstream: scientific-agent-skills
+  category: bioinformatics
+  description: Protein language models (ESM) and the Adaptyv Bio Foundry API.
+- name: sci-research-methodology
+  kind: built
+  upstream: scientific-agent-skills
+  category: methodology
+  description: Hypothesis generation, grant writing, brainstorming, critical-thinking
+    eval, scenario analysis, and cognitive/meta tools.
+- name: sci-agents-molecular-cell-biology
+  kind: agents
+  upstream: scientific-agents
+  category: bioinformatics
+  description: 'Expert-thinking subagents for molecular & cell biology: genetics,
+    genomics, omics, biochemistry, biophysics, microbiology, immunology, virology,
+    and structural/synthetic/systems biology.'
+- name: sci-agents-organismal-eco-biology
+  kind: agents
+  upstream: scientific-agents
+  category: bioinformatics
+  description: 'Expert-thinking subagents for organismal, ecological, and evolutionary
+    biology: zoology, botany, physiology, taxonomy, phylogenetics, conservation, and
+    marine/field biology.'
+- name: sci-agents-medical-specialties
+  kind: agents
+  upstream: scientific-agents
+  category: clinical
+  description: 'Expert-thinking subagents for clinical medical specialties: cardiology,
+    oncology, radiology, pathology, neurology, surgery, anesthesiology, pharmacology,
+    and related fields.'
+- name: sci-agents-clinical
+  kind: agents
+  upstream: scientific-agents
+  category: clinical
+  description: 'Expert-thinking subagents for clinical, population, and translational
+    science: epidemiology, clinical trials, regulatory affairs, pharmacovigilance,
+    and public/global health.'
+- name: sci-agents-chemistry
+  kind: agents
+  upstream: scientific-agents
+  category: chemistry
+  description: 'Expert-thinking subagents for chemistry: organic, inorganic, physical,
+    analytical, electrochemistry, catalysis, spectroscopy, mass spectrometry, and
+    crystallography.'
+- name: sci-agents-materials-nano
+  kind: agents
+  upstream: scientific-agents
+  category: chemistry
+  description: 'Expert-thinking subagents for materials science and nanotechnology:
+    metallurgy, ceramics, composites, polymers, semiconductors, energy storage, and
+    nanomaterials.'
+- name: sci-agents-physics
+  kind: agents
+  upstream: scientific-agents
+  category: physics
+  description: 'Expert-thinking subagents for physics: quantum, optics/photonics,
+    plasma/fusion, particle, nuclear, condensed-matter, statistical, and atomic-molecular-optical
+    physics.'
+- name: sci-agents-astronomy-space
+  kind: agents
+  upstream: scientific-agents
+  category: physics
+  description: 'Expert-thinking subagents for astronomy and space science: astrophysics,
+    cosmology, planetary science, heliophysics, exoplanets, and astrodynamics.'
+- name: sci-agents-earth-environment
+  kind: agents
+  upstream: scientific-agents
+  category: earth-science
+  description: 'Expert-thinking subagents for earth, environmental, ocean, and atmospheric
+    science: geology, geophysics, climate, oceanography, hydrology, remote sensing,
+    and sustainability.'
+- name: sci-agents-engineering
+  kind: agents
+  upstream: scientific-agents
+  category: engineering
+  description: 'Expert-thinking subagents for mechanical, civil, chemical, aerospace,
+    and process engineering: fluid dynamics, structures, manufacturing, thermodynamics,
+    and reliability.'
+- name: sci-agents-electrical-computer-hw
+  kind: agents
+  upstream: scientific-agents
+  category: engineering
+  description: 'Expert-thinking subagents for electrical, electronics, and computer-hardware
+    engineering: power, RF/photonics, semiconductors, embedded/control systems, signals,
+    and robotics.'
+- name: sci-agents-cs-ai-data
+  kind: agents
+  upstream: scientific-agents
+  category: ml
+  description: 'Expert-thinking subagents for computer science, AI, and data: machine
+    learning, systems, theory, security, NLP, computer vision, and computational/cognitive
+    science.'
+- name: sci-agents-math-stats-or
+  kind: agents
+  upstream: scientific-agents
+  category: methodology
+  description: 'Expert-thinking subagents for mathematics, statistics, and operations
+    research: pure/applied math, probability, Bayesian/causal inference, optimization,
+    and numerical analysis.'
+- name: sci-agents-agri-food-vet
+  kind: agents
+  upstream: scientific-agents
+  category: agriculture
+  description: 'Expert-thinking subagents for agriculture, food, and veterinary science:
+    agronomy, soil science, crop/animal science, food science, aquaculture, and veterinary
+    medicine.'
+- name: claude-scientific-writer
+  kind: vendored
+  upstream: claude-scientific-writer
+  category: communication
+  description: "K-Dense's scientific writing toolkit (papers, grants, posters, clinical\
+    \ reports, document conversion) plus a /scientific-writer-init command. NOTE:\
+    \ this is a BUNDLE \u2014 its skills also ship in the focused sci-* and kdense-*\
+    \ plugins. To avoid duplicate skills, install EITHER claude-scientific-writer\
+    \ OR the focused plugins, not both."
+- name: caveman
+  kind: vendored-whole
+  upstream: caveman
+  category: productivity
+  patched: true
+  description: 'Caveman: ultra-compressed communication mode (lite/full/ultra/wenyan).
+    Cuts ~75% of output tokens while keeping technical accuracy. Downstream-patched
+    so terseness reads as value-proportional allocation: a floor for low-value turns,
+    not a cap on high-value ones (see patches/caveman.json).'
+- name: laconic
+  kind: local
+  category: productivity
+  description: 'Laconic: a value-proportional communication register engine. Ships
+    the ''laconic'' register: elliptical but literate, a sharp colleague writing fast.
+    Drop the function words a reader restores for free, keep the logic connectives,
+    notebook symbols where they decode. Compresses the report, never the work behind
+    it. Registers are data files under registers/; drop in a new one to add a voice,
+    no code change.'
