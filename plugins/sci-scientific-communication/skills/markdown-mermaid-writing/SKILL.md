@@ -8,8 +8,8 @@ metadata:
   version: "1.1"
   skill-author: Clayton Young / Superior Byte Works, LLC (@borealBytes)
   skill-source: https://github.com/SuperiorByteWorks-LLC/agent-project
-  skill-version: "1.0.0"
-  skill-contributors: "Clayton Young (Superior Byte Works, LLC / @borealBytes; Author and originator); K-Dense Team (K-Dense Inc.; Integration target and community feedback)"
+  skill-version: 1.0.0
+  skill-contributors: Clayton Young (Superior Byte Works, LLC / @borealBytes; Author and originator); K-Dense Team (K-Dense Inc.; Integration target and community feedback)
 ---
 
 # Markdown and Mermaid Writing

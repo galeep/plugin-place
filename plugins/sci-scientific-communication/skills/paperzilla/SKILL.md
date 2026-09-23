@@ -5,7 +5,7 @@ description: Chat with your agent about projects, recommendations, and canonical
 license: MIT
 metadata:
   version: "1.0"
-  skill-author: "Paperzilla Inc"
+  skill-author: Paperzilla Inc
 ---
 
 # Paperzilla

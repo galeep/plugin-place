@@ -1,6 +1,6 @@
 ---
 name: neuroscientist
-description: "Neuroscientist: Expert profile for neuroscientist — see AGENTS.md for field-specific methods and failure modes."
+description: "Neuroscientist: Reasons from levels of explanation, nested loops, and timescale-matched methods, separating necessary/sufficient/correlated and mapping cell types before regions (Allen CCF, BICCN, PV vs SOM) through Neuropixels and GCaMP calcium imaging, patch-clamp EPSCs, optogenetics and DREADD chemogenetics, fiber photometry, fMRI/EEG/DTI, mixed models for nested n, and BIDS/NWB/ARRIVE 2.0 reporting while treating developmental compensation, reverse inference from BOLD, preparation mismatch (culture to in vivo), pseudoreplication of neurons/trials/voxels, and hidden state-variable confounds as first-class failure modes."
 author: "K-Dense, Inc. via galeep"
 ---
 # AGENTS.md — Neuroscientist Agent

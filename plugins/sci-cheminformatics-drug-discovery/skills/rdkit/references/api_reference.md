@@ -24,7 +24,7 @@ The fundamental module for working with molecules.
 **Writing Molecules:**
 
 - `Chem.MolToSmiles(mol, isomericSmiles=True, canonical=True)` - Convert to SMILES
-- `Chem.MolToSmarts(mol, isomericSmarts=False)` - Convert to SMARTS
+- `Chem.MolToSmarts(mol, isomericSmiles=False)` - Convert to SMARTS
 - `Chem.MolToMolBlock(mol, includeStereo=True, confId=-1)` - Convert to MOL block
 - `Chem.MolToMolFile(mol, filename, includeStereo=True, confId=-1)` - Write MOL file
 - `Chem.MolToPDBBlock(mol, confId=-1)` - Convert to PDB block
@@ -166,9 +166,10 @@ Extended chemistry functionality.
 
 ### Fingerprints
 
-- `AllChem.GetMorganFingerprint(mol, radius, useFeatures=False)` - Morgan fingerprint
-- `AllChem.GetMorganFingerprintAsBitVect(mol, radius, nBits=2048)` - Morgan bit vector
-- `AllChem.GetHashedMorganFingerprint(mol, radius, nBits=2048)` - Hashed Morgan
+- Prefer `rdFingerprintGenerator.GetMorganGenerator()` for new Morgan fingerprint code
+- `AllChem.GetMorganFingerprint(mol, radius, useFeatures=False)` - Legacy Morgan fingerprint helper
+- `AllChem.GetMorganFingerprintAsBitVect(mol, radius, nBits=2048)` - Legacy Morgan bit vector helper
+- `AllChem.GetHashedMorganFingerprint(mol, radius, nBits=2048)` - Legacy hashed Morgan helper
 - `AllChem.GetErGFingerprint(mol)` - ErG fingerprint
 
 ## rdkit.Chem.Descriptors
@@ -248,7 +249,7 @@ Additional descriptor calculations.
 - `rdMolDescriptors.CalcNumAromaticHeterocycles(mol)` - Aromatic heterocycles
 - `rdMolDescriptors.CalcNumSpiroAtoms(mol)` - Spiro atoms
 - `rdMolDescriptors.CalcNumBridgeheadAtoms(mol)` - Bridgehead atoms
-- `rdMolDescriptors.CalcFractionCsp3(mol)` - Fraction of sp3 carbons
+- `rdMolDescriptors.CalcFractionCSP3(mol)` - Fraction of sp3 carbons
 - `rdMolDescriptors.CalcLabuteASA(mol)` - Labute accessible surface area
 - `rdMolDescriptors.CalcTPSA(mol)` - TPSA
 - `rdMolDescriptors.CalcMolFormula(mol)` - Molecular formula
@@ -280,6 +281,12 @@ Molecular hashing and standardization.
 ## rdkit.Chem.MolStandardize
 
 Molecule standardization.
+
+Import the current standardization implementation from `rdkit.Chem.MolStandardize`:
+
+```python
+from rdkit.Chem.MolStandardize import rdMolStandardize
+```
 
 - `rdMolStandardize.Normalize(mol)` - Normalize functional groups
 - `rdMolStandardize.Reionize(mol)` - Fix ionization state
@@ -356,13 +363,15 @@ Clustering algorithms.
 
 ## rdkit.Chem.rdFingerprintGenerator
 
-Modern fingerprint generation API (RDKit 2020.09+).
+Modern fingerprint generation API. Prefer this over legacy `AllChem.GetMorganFingerprint*` helpers for new code.
 
 - `rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=2048)` - Morgan generator
 - `rdFingerprintGenerator.GetRDKitFPGenerator(minPath=1, maxPath=7, fpSize=2048)` - RDKit FP generator
 - `rdFingerprintGenerator.GetAtomPairGenerator(minDistance=1, maxDistance=30)` - Atom pair generator
+- `rdFingerprintGenerator.GetTopologicalTorsionGenerator(fpSize=2048)` - Topological torsion generator
 - `generator.GetFingerprint(mol)` - Generate fingerprint
 - `generator.GetCountFingerprint(mol)` - Count-based fingerprint
+- `rdFingerprintGenerator.AdditionalOutput()` - Collect bit information for visualization and explanations
 
 ## Common Parameters
 
@@ -407,12 +416,14 @@ Modern fingerprint generation API (RDKit 2020.09+).
 ## Installation
 
 ```bash
-# Using conda (recommended)
-conda install -c conda-forge rdkit
+# Existing uv/pip environment
+uv pip install rdkit
 
-# Using pip
-pip install rdkit-pypi
+# Fresh conda-forge environment (upstream recommendation)
+conda create -c conda-forge -n my-rdkit-env rdkit
 ```
+
+The PyPI package is now `rdkit`; `rdkit-pypi` is the legacy name for older releases.
 
 ## Importing
 
