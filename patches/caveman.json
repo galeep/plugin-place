@@ -1,24 +1,30 @@
 {
   "plugin": "caveman",
-  "description": "Downstream edits for caveman v2.7.0: reframe caveman terseness as value-proportional allocation (terseness is a floor for low-value turns, not a cap).",
+  "description": "Downstream edits for caveman v4.1.0: reframe caveman terseness as value-proportional allocation (terseness is a floor for low-value turns, not a cap).",
   "edits": [
     {
       "file": "src/hooks/caveman-mode-tracker.js",
-      "why": "Per-turn UserPromptSubmit reminder: demote blanket terseness to a floor, add value-proportional spend, the render-only carve-out, and the err-verbose asymmetry. Upstream v2.6.0/v2.7.0 replaced the inline ternary reminder with a `reinforcementForMode(activeMode)` helper that builds the reminder from REINFORCEMENT_RULES, so the old anchor on the template literal no longer exists. Re-anchor onto the helper's return statement and append the allocation framing there. This preserves the upstream gate (active, non-independent, defaultMode != 'off') and emits the reframe on every ordinary turn.",
-      "find": "  return 'CAVEMAN MODE ACTIVE (' + mode + '). Enforce this reply: ' + rules +\n    ' Technical terms, code, commands, paths, and errors stay exact.';",
-      "replace": "  return 'CAVEMAN MODE ACTIVE (' + mode + '). Enforce this reply: ' + rules +\n    ' Technical terms, code, commands, paths, and errors stay exact. ' +\n    'Terseness (drop articles/filler/pleasantries/hedging, fragments OK) is the FLOOR for low-value turns (status/lookup/recall), not a cap. ' +\n    'High-value turns (debug/design/tradeoff/review): spend for the turn\\'s value, reason in full prose, compress only the final statement, never the reasoning. ' +\n    'Code/commits/security: write normal. ' +\n    'Unsure which? Err verbose: a silent skipped step costs more than visible length.';"
+      "why": "Append the allocation framing to the per-turn reminder, preserving the upstream mode thesis, answer-scope guidance, and reinforcement gates.",
+      "find": "    ' normal prose. Technical terms, code, commands, paths, and errors stay exact.';",
+      "replace": "    ' normal prose. Technical terms, code, commands, paths, and errors stay exact. ' +\n    'Terseness (drop articles/filler/pleasantries/hedging, fragments OK) is the FLOOR for low-value turns (status/lookup/recall), not a cap. ' +\n    'High-value turns (debug/design/tradeoff/review): spend for the turn\\'s value, reason in full prose, compress only the final statement, never the reasoning. ' +\n    'Code/commits/security: write normal. ' +\n    'Unsure which? Err verbose: a silent skipped step costs more than visible length.';"
     },
     {
       "file": "skills/caveman/SKILL.md",
-      "why": "Pull-layer rationale (Goodhart, recoverability ordering, flat-plan shadow-price). Loaded only on /caveman, so the token cost is paid rarely. Anchored on the steady `## Rules` heading, which is still unique in v2.7.0.",
+      "why": "Pull-layer rationale (Goodhart, recoverability ordering, flat-plan shadow-price), anchored on the unique `## Rules` heading.",
       "find": "\n## Rules\n",
       "replace": "\n## Allocation: terseness is a floor, not a cap\n\nCaveman compresses how a response is *written*, never whether the *thinking* happened. Terseness is the floor for low-value turns (status, lookup, recall). It is not a ceiling on high-value turns (debug, design, tradeoff, review). On a high-value turn, spend tokens in proportion to the turn's value: reason in full prose and compress only the final statement.\n\nThe proxy trap: \"minimize tokens\" is a measure of efficiency, not the goal. Promote that measure to a target and it stops tracking the goal (Goodhart). The goal is value per token. Minimizing is as wrong as padding, because both misallocate.\n\nWhy err verbose. The two failure directions are not symmetric. An over-long answer wastes tokens, and tokens are visible and recoverable: the reader skims. A skipped reasoning step wastes correctness, and that is silent and unrecoverable: the work gets redone. Order the failures by recovery cost: a skipped step (redo) is worse than lost detail (ask again), which is worse than an unclear but complete answer (reread), which is worse than mere length (skim). When unsure which kind of turn you are on, bias toward completeness.\n\nWhen terseness still pays. Token thrift earns its keep only as a real budget nears its limit: the rate-limit window, or the context window approaching compaction. Under a flat-rate plan the per-token price is already sunk, so reflexive per-turn thrift saves a resource you have already bought. The budgets that actually bind are context runway and the rate-limit window, both spent across turns rather than minimized within one. Conserve harder only as a cap comes into view.\n\n## Rules\n"
     },
     {
+      "file": "src/hooks/caveman-config.js",
+      "why": "Shared fallback ruleset for SessionStart and mode switches when skills are absent.",
+      "find": "  return 'Respond terse like smart caveman. All technical substance stay. Only fluff die.\\n\\n' +",
+      "replace": "  return 'Terseness is the floor for low-value turns (status/lookup/recall), not a cap on high-value ones (debug/design/tradeoff/review), which get full prose and compress only the final statement. Respond terse like smart caveman. All technical substance stay. Only fluff die.\\n\\n' +"
+    },
+    {
       "file": "src/hooks/caveman-activate.js",
-      "why": "SessionStart fallback ruleset (used only when the skills dir is absent): mirror the floor-not-cap framing so the standalone path agrees with the skill.",
-      "find": "    'Respond terse like smart caveman. All technical substance stay. Only fluff die.\\n\\n' +",
-      "replace": "    'Terseness is the floor for low-value turns (status/lookup/recall), not a cap on high-value ones (debug/design/tradeoff/review), which get full prose and compress only the final statement. Respond terse like smart caveman. All technical substance stay. Only fluff die.\\n\\n' +"
+      "why": "SessionStart's compatibility fallback when an older config lacks fallbackRuleset.",
+      "find": "  return 'Respond terse like smart caveman. All technical substance stay. Only fluff die.\\n\\n' +",
+      "replace": "  return 'Terseness is the floor for low-value turns (status/lookup/recall), not a cap on high-value ones (debug/design/tradeoff/review), which get full prose and compress only the final statement. Respond terse like smart caveman. All technical substance stay. Only fluff die.\\n\\n' +"
     }
   ]
 }
