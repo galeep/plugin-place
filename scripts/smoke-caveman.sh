@@ -53,11 +53,11 @@ ACTIVATE="$REPO_ROOT/plugins/caveman/src/hooks/caveman-activate.js"
 [ -f "$ACTIVATE" ] || { echo "smoke-caveman: activate hook not built: $ACTIVATE" >&2; exit 1; }
 ss="$(CLAUDE_CONFIG_DIR="$tmp" node "$ACTIVATE")"
 
-# The patched path (edit #5) must load SKILL.md, so the Allocation section AND
-# the final Boundaries section must both appear: presence of the first proves it
+# The patched path must load SKILL.md, so the Allocation section AND
+# the final Pre-send check section must both appear: presence of the first proves it
 # loaded the skill (not the hardcoded fallback); presence of the last proves the
 # output was not cut off mid-content.
-for needle in "## Allocation: terseness is a floor" "## Boundaries"; do
+for needle in "## Allocation: terseness is a floor" "## Pre-send check"; do
   case "$ss" in
     *"$needle"*) ;;
     *) echo "smoke-caveman: SessionStart MISSING expected text: $needle" >&2; fail=1 ;;

@@ -4,7 +4,9 @@
   "display_name": "Gemini CLI",
   "vendor": "Google",
   "homepage": "https://github.com/google-gemini/gemini-cli",
-  "binary_names": ["gemini"],
+  "binary_names": [
+    "gemini"
+  ],
   "args": [],
   "install": "npm i -g @google/gemini-cli",
   "wire_protocol": "gemini-generatecontent",
@@ -15,12 +17,16 @@
       "GOOGLE_VERTEX_BASE_URL": "{{cave_base_url}}/vertex"
     }
   },
-  "command_hook": { "method": "gemini-beforetool" },
-  "attribution": { "header": "x-cave-agent" },
-  "tested_agent_version": "0.60.0",
+  "command_hook": {
+    "method": "gemini-beforetool"
+  },
+  "attribution": {
+    "header": "x-cave-agent"
+  },
+  "tested_agent_version": "0.67.0",
   "injection_completeness": "declarative",
-  "last_verified_at": "2026-09-18",
-  "verified_by": "local pinned-binary probe (gemini 0.60.0, agents/probe-installed.mjs)",
+  "last_verified_at": "2026-11-06",
+  "verified_by": "CI pinned-binary probe (gemini 0.67.0, agent-conformance pinned-upstream-binary lane on ubuntu-latest with Node 24.16.0, agents/probe-installed.mjs: --version and --help both exit 0); route probe last run on 0.65.0, not re-run on 0.67.0, from a scratch HOME with GEMINI_CLI_TRUST_WORKSPACE=true and security.auth.selectedType gemini-api-key in its settings: GOOGLE_GEMINI_BASE_URL redirection observed reaching POST /v1beta/models/{model}:generateContent (model-router classifier) and POST /v1beta/models/{model}:streamGenerateContent?alt=sse (the turn) under the injected base URL, carrying the key as x-goog-api-key, and the run completed (exit 0). The classifier's own call was answered by a generic stub rather than a schema-valid classifier response, so it exhausted its retries and fell back to the default model; the route and auth header are what this probe observed, not the classifier's verdict. NOT observed: an env-only launch -- with no selectedType, 0.65.0 (like 0.64.0 and 0.63.0) derives the gateway auth type from GOOGLE_GEMINI_BASE_URL and exits 41 \"Invalid auth method selected.\" before sending any request (re-confirmed on 0.65.0: zero requests reached the recorder)",
   "fallback": "generic-env",
   "maintainer": null
 }
