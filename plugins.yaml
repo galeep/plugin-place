@@ -31,10 +31,10 @@ upstreams:
     author: K-Dense Inc.
   caveman:
     submodule: vendor/caveman
-    pinned_tag: v2.7.0
+    pinned_tag: v3.0.0
     upstream_repo: JuliusBrussee/caveman
     license: MIT
-    license_fingerprint: 1262f1188ab44564e59ec4eed1784bd93c8716f1715b7c447d094fdbabe83b59
+    license_fingerprint: 8dab97167cf3788bd7988a19c08dab660365e94b24b6f508cf27c34e215be400
     author: Julius Brussee
 plugins:
 - name: sci-bioinformatics-genomics
